@@ -27,6 +27,10 @@ class CostCalculatorCubit extends Cubit<CostCalculatorState> {
     emit(state.copyWith(isGpuEnabled: enabled));
   }
 
+  void setGpuWattage(double wattage) {
+    emit(state.copyWith(gpuWattage: wattage < 0 ? 0 : wattage));
+  }
+
   void setStorageDriveCount(int count) {
     emit(state.copyWith(storageDriveCount: count < 0 ? 0 : count));
   }
@@ -35,8 +39,24 @@ class CostCalculatorCubit extends Cubit<CostCalculatorState> {
     emit(state.copyWith(fanCount: count < 0 ? 0 : count));
   }
 
+  void setStorageWattagePerDrive(double wattage) {
+    emit(state.copyWith(storageWattagePerDrive: wattage < 0 ? 0 : wattage));
+  }
+
+  void setFanWattagePerFan(double wattage) {
+    emit(state.copyWith(fanWattagePerFan: wattage < 0 ? 0 : wattage));
+  }
+
+  void setRamWattage(double wattage) {
+    emit(state.copyWith(ramWattage: wattage < 0 ? 0 : wattage));
+  }
+
   void toggleRgb(bool enabled) {
     emit(state.copyWith(isRgbEnabled: enabled));
+  }
+
+  void setRgbWattage(double wattage) {
+    emit(state.copyWith(rgbWattage: wattage < 0 ? 0 : wattage));
   }
 
   void configureComponentWattage(List<ComponentModel> components) {

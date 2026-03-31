@@ -1,3 +1,3 @@
-String formatPhp(double value) {
-  return 'PHP ${value.toStringAsFixed(2)}';
+String formatCurrency(String code, double value) {
+  return '$code ${value.toStringAsFixed(2)}';
 }
