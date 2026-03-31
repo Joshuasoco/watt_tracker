@@ -10,11 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:watt_tracker/main.dart';
 
 void main() {
-  testWidgets('App boots with data-layer ready text', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('App boots on calculator page', (WidgetTester tester) async {
     await tester.pumpWidget(const WattTrackerApp());
+    await tester.pumpAndSettle();
 
-    expect(find.text('Watt Tracker data layer ready'), findsOneWidget);
+    expect(find.text('Calculator'), findsOneWidget);
   });
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app/router.dart';
+import 'app/theme.dart';
 import 'data/local/hive_boxes.dart';
 import 'data/repositories/wattage_repository.dart';
 
@@ -18,14 +20,10 @@ class WattTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Watt Tracker',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0A7E8C)),
-      ),
-      home: const Scaffold(
-        body: Center(child: Text('Watt Tracker data layer ready')),
-      ),
+      theme: AppTheme.light,
+      routerConfig: AppRouter.router,
     );
   }
 }
