@@ -1,4 +1,4 @@
-# watt_tracker
+# wattwise
 
 A new Flutter project.
 
