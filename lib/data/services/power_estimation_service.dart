@@ -10,8 +10,9 @@ class PowerEstimationService {
     required double ratePerKwh,
     required double dailyHours,
     required UsageProfile usageProfile,
+    double? manualCalibrationWatts,
   }) {
-    final components = <PowerEstimateComponent>[
+    final rawComponents = <PowerEstimateComponent>[
       PowerEstimateComponent(
         key: 'cpu',
         label: 'CPU',
@@ -71,23 +72,51 @@ class PowerEstimationService {
       ),
     ];
 
+    final uncalibratedWatts = rawComponents.fold<double>(
+      0,
+      (sum, component) => sum + component.estimatedWatts,
+    );
+    final peakWatts = rawComponents.fold<double>(
+      0,
+      (sum, component) => sum + component.peakWatts,
+    );
+    final calibrationFactor = _calibrationFactor(
+      uncalibratedWatts: uncalibratedWatts,
+      manualCalibrationWatts: manualCalibrationWatts,
+    );
+    final components = rawComponents
+        .map(
+          (component) => PowerEstimateComponent(
+            key: component.key,
+            label: component.label,
+            peakWatts: component.peakWatts,
+            estimatedWatts: component.estimatedWatts * calibrationFactor,
+          ),
+        )
+        .toList();
     final estimatedWatts = components.fold<double>(
       0,
       (sum, component) => sum + component.estimatedWatts,
     );
-    final peakWatts = components.fold<double>(
-      0,
-      (sum, component) => sum + component.peakWatts,
-    );
     final costPerHour = (estimatedWatts / 1000) * ratePerKwh;
-    final confidenceReasons = _confidenceReasons(spec);
-    final confidence = _estimateConfidence(confidenceReasons);
+    final confidenceReasons = _confidenceReasons(
+      spec,
+      manualCalibrationWatts: manualCalibrationWatts,
+      calibrationFactor: calibrationFactor,
+    );
+    final confidence = _estimateConfidence(
+      confidenceReasons,
+      isCalibrated: manualCalibrationWatts != null,
+    );
     final generatedAt = DateTime.now();
 
     return PowerEstimate(
       usageProfile: usageProfile,
       peakWatts: peakWatts,
+      uncalibratedWatts: uncalibratedWatts,
       estimatedWatts: estimatedWatts,
+      calibrationFactor: calibrationFactor,
+      manualCalibrationWatts: manualCalibrationWatts,
       costPerSecond: costPerHour / 3600,
       costPerHour: costPerHour,
       costPerDay: costPerHour * dailyHours,
@@ -98,11 +127,31 @@ class PowerEstimationService {
               'Core hardware looks confirmed, so this estimate is based on saved component models.',
             ]
           : confidenceReasons,
-      formula:
-          '${estimatedWatts.toStringAsFixed(0)} W x ${ratePerKwh.toStringAsFixed(2)} /kWh x ${dailyHours.toStringAsFixed(1)} hrs/day',
+      formula: _formula(
+        uncalibratedWatts: uncalibratedWatts,
+        estimatedWatts: estimatedWatts,
+        ratePerKwh: ratePerKwh,
+        dailyHours: dailyHours,
+        calibrationFactor: calibrationFactor,
+        manualCalibrationWatts: manualCalibrationWatts,
+      ),
       generatedAt: generatedAt,
       components: components,
     );
+  }
+
+  double _calibrationFactor({
+    required double uncalibratedWatts,
+    required double? manualCalibrationWatts,
+  }) {
+    if (manualCalibrationWatts == null ||
+        manualCalibrationWatts <= 0 ||
+        uncalibratedWatts <= 0) {
+      return 1;
+    }
+
+    final rawFactor = manualCalibrationWatts / uncalibratedWatts;
+    return _clampDouble(rawFactor, 0.35, 2.5);
   }
 
   double _cpuIdleWatts(SystemSpecModel spec) {
@@ -211,8 +260,18 @@ class PowerEstimationService {
     }
   }
 
-  List<String> _confidenceReasons(SystemSpecModel spec) {
+  List<String> _confidenceReasons(
+    SystemSpecModel spec, {
+    required double? manualCalibrationWatts,
+    required double calibrationFactor,
+  }) {
     final reasons = <String>[];
+
+    if (manualCalibrationWatts != null) {
+      reasons.add(
+        'Manual calibration is applied using your saved ${manualCalibrationWatts.toStringAsFixed(0)} W meter reading (${calibrationFactor.toStringAsFixed(2)}x correction).',
+      );
+    }
 
     if (_looksUnknown(spec.cpuName)) {
       reasons.add(
@@ -238,7 +297,14 @@ class PowerEstimationService {
     return reasons;
   }
 
-  EstimateConfidence _estimateConfidence(List<String> reasons) {
+  EstimateConfidence _estimateConfidence(
+    List<String> reasons, {
+    required bool isCalibrated,
+  }) {
+    final heuristicCount = isCalibrated ? reasons.length - 1 : reasons.length;
+    if (isCalibrated && heuristicCount <= 2) {
+      return EstimateConfidence.high;
+    }
     if (reasons.length >= 3) {
       return EstimateConfidence.low;
     }
@@ -261,5 +327,22 @@ class PowerEstimationService {
       return max;
     }
     return value;
+  }
+
+  String _formula({
+    required double uncalibratedWatts,
+    required double estimatedWatts,
+    required double ratePerKwh,
+    required double dailyHours,
+    required double calibrationFactor,
+    required double? manualCalibrationWatts,
+  }) {
+    final base =
+        '${uncalibratedWatts.toStringAsFixed(0)} W model x ${ratePerKwh.toStringAsFixed(2)} /kWh x ${dailyHours.toStringAsFixed(1)} hrs/day';
+    if (manualCalibrationWatts == null) {
+      return base;
+    }
+
+    return '${uncalibratedWatts.toStringAsFixed(0)} W model x ${calibrationFactor.toStringAsFixed(2)} calibration = ${estimatedWatts.toStringAsFixed(0)} W adjusted x ${ratePerKwh.toStringAsFixed(2)} /kWh x ${dailyHours.toStringAsFixed(1)} hrs/day';
   }
 }

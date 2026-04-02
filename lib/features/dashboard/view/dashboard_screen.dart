@@ -246,10 +246,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   totalCost: state.totalCostAccumulated,
                                   costPerSecond: state.costPerSecond,
                                   estimatedWatts: state.estimate.estimatedWatts,
+                                  uncalibratedWatts:
+                                      state.estimate.uncalibratedWatts,
                                   peakWatts: state.estimate.peakWatts,
                                   confidenceLabel:
                                       state.estimate.confidence.label,
                                   usageProfileLabel: state.usageProfile.label,
+                                  calibrationLabel: state.estimate.isCalibrated
+                                      ? '${state.estimate.calibrationFactor.toStringAsFixed(2)}x calibrated'
+                                      : 'Model only',
                                   elapsedSeconds: state.elapsedSeconds,
                                   isRunning: state.isRunning,
                                 ),
@@ -270,9 +275,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                             totalCost: state.totalCostAccumulated,
                             costPerSecond: state.costPerSecond,
                             estimatedWatts: state.estimate.estimatedWatts,
+                            uncalibratedWatts: state.estimate.uncalibratedWatts,
                             peakWatts: state.estimate.peakWatts,
                             confidenceLabel: state.estimate.confidence.label,
                             usageProfileLabel: state.usageProfile.label,
+                            calibrationLabel: state.estimate.isCalibrated
+                                ? '${state.estimate.calibrationFactor.toStringAsFixed(2)}x calibrated'
+                                : 'Model only',
                             elapsedSeconds: state.elapsedSeconds,
                             isRunning: state.isRunning,
                           ),
@@ -345,6 +354,12 @@ class _DashboardContextPanel extends StatelessWidget {
                   '${state.estimate.estimatedWatts.toStringAsFixed(0)} W typical',
             ),
             _ContextRow(
+              label: 'Calibration',
+              value: state.estimate.isCalibrated
+                  ? '${state.estimate.calibrationFactor.toStringAsFixed(2)}x'
+                  : 'Not set',
+            ),
+            _ContextRow(
               label: 'Usage profile',
               value: state.usageProfile.label,
             ),
@@ -394,6 +409,27 @@ class _DashboardContextPanel extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (!state.estimate.isCalibrated)
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/settings'),
+                          icon: const Icon(Icons.straighten_rounded),
+                          label: const Text('Add calibration'),
+                        ),
+                      if (state.estimate.confidence != EstimateConfidence.high)
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/settings'),
+                          icon: const Icon(Icons.tune_rounded),
+                          label: const Text('Improve estimate'),
+                        ),
+                    ],
+                  ),
+                  if (!state.estimate.isCalibrated ||
+                      state.estimate.confidence != EstimateConfidence.high)
+                    const SizedBox(height: 8),
                   Text(
                     _buildMessage(),
                     style: Theme.of(context).textTheme.bodyMedium,

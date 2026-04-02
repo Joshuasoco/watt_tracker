@@ -24,7 +24,10 @@ class LiveTimerState extends Equatable {
       estimate: PowerEstimate(
         usageProfile: UsageProfile.balanced,
         peakWatts: SystemSpecModel.defaults().totalWatts.toDouble(),
+        uncalibratedWatts: SystemSpecModel.defaults().totalWatts.toDouble(),
         estimatedWatts: SystemSpecModel.defaults().totalWatts.toDouble(),
+        calibrationFactor: 1,
+        manualCalibrationWatts: null,
         costPerSecond: 0,
         costPerHour: 0,
         costPerDay: 0,

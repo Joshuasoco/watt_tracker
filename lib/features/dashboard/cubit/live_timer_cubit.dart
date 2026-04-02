@@ -39,6 +39,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     final dailyHours = _prefsRepository.dailyHours;
     final currencySymbol = _prefsRepository.currencySymbol;
     final usageProfile = _prefsRepository.usageProfile;
+    final manualCalibrationWatts = _prefsRepository.manualCalibrationWatts;
     sessionMilestoneHours = _prefsRepository.sessionMilestoneHours;
 
     final spec = _resolveSpec(savedSpec);
@@ -47,6 +48,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
       rate: rate,
       dailyHours: dailyHours,
       usageProfile: usageProfile,
+      manualCalibrationWatts: manualCalibrationWatts,
     );
 
     emit(
@@ -68,6 +70,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     final dailyHours = _prefsRepository.dailyHours;
     final currencySymbol = _prefsRepository.currencySymbol;
     final usageProfile = _prefsRepository.usageProfile;
+    final manualCalibrationWatts = _prefsRepository.manualCalibrationWatts;
 
     sessionMilestoneHours = _prefsRepository.sessionMilestoneHours;
 
@@ -77,6 +80,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
       rate: rate,
       dailyHours: dailyHours,
       usageProfile: usageProfile,
+      manualCalibrationWatts: manualCalibrationWatts,
     );
 
     emit(
@@ -182,12 +186,14 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     required double rate,
     required double dailyHours,
     required UsageProfile usageProfile,
+    required double? manualCalibrationWatts,
   }) {
     return _estimationService.estimate(
       spec: spec,
       ratePerKwh: rate,
       dailyHours: dailyHours,
       usageProfile: usageProfile,
+      manualCalibrationWatts: manualCalibrationWatts,
     );
   }
 

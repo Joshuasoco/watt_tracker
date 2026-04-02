@@ -7,9 +7,11 @@ class CostTicker extends StatelessWidget {
     required this.totalCost,
     required this.costPerSecond,
     required this.estimatedWatts,
+    required this.uncalibratedWatts,
     required this.peakWatts,
     required this.confidenceLabel,
     required this.usageProfileLabel,
+    required this.calibrationLabel,
     required this.elapsedSeconds,
     required this.isRunning,
   });
@@ -18,9 +20,11 @@ class CostTicker extends StatelessWidget {
   final double totalCost;
   final double costPerSecond;
   final double estimatedWatts;
+  final double uncalibratedWatts;
   final double peakWatts;
   final String confidenceLabel;
   final String usageProfileLabel;
+  final String calibrationLabel;
   final int elapsedSeconds;
   final bool isRunning;
 
@@ -78,6 +82,10 @@ class CostTicker extends StatelessWidget {
                     icon: Icons.verified_user_rounded,
                     label: '$confidenceLabel confidence',
                   ),
+                  _StatusChip(
+                    icon: Icons.straighten_rounded,
+                    label: calibrationLabel,
+                  ),
                 ],
               ),
               const SizedBox(height: 22),
@@ -115,6 +123,10 @@ class CostTicker extends StatelessWidget {
                     value: '${peakWatts.toStringAsFixed(0)} W',
                   ),
                   _MicroStat(
+                    label: 'Model baseline',
+                    value: '${uncalibratedWatts.toStringAsFixed(0)} W',
+                  ),
+                  _MicroStat(
                     label: 'Runtime state',
                     value: isRunning ? 'Accumulating' : 'On hold',
                   ),
@@ -137,7 +149,7 @@ class CostTicker extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'This live ticker updates every second using your saved hardware profile, selected usage profile, and electricity rate.',
+                        'This live ticker updates every second using your saved hardware profile, selected usage profile, manual calibration if available, and electricity rate.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withOpacity(0.82),
                         ),

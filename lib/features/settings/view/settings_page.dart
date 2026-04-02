@@ -24,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late final TextEditingController _currencyController;
   late final TextEditingController _rateController;
   late final TextEditingController _hoursController;
+  late final TextEditingController _calibrationController;
   late final TextEditingController _milestoneController;
   late UsageProfile _usageProfile;
 
@@ -39,6 +40,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     _hoursController = TextEditingController(
       text: _prefsRepository.dailyHours.toStringAsFixed(1),
+    );
+    _calibrationController = TextEditingController(
+      text: _prefsRepository.manualCalibrationWatts?.toStringAsFixed(0) ?? '',
     );
     _usageProfile = _prefsRepository.usageProfile;
     _milestoneController = TextEditingController(
@@ -57,6 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final symbol = _currencyController.text.trim().isEmpty
         ? '\u20B1'
         : _currencyController.text.trim();
+    final calibrationWatts = _parseCalibrationInput();
     final milestone =
         double.tryParse(_milestoneController.text.trim()) ??
         _prefsRepository.sessionMilestoneHours;
@@ -66,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ratePerKwh: rate,
       dailyHours: hours,
       usageProfile: _usageProfile,
+      manualCalibrationWatts: calibrationWatts,
     );
 
     return Scaffold(
@@ -82,6 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   currencyController: _currencyController,
                   rateController: _rateController,
                   hoursController: _hoursController,
+                  calibrationController: _calibrationController,
                   milestoneController: _milestoneController,
                   milestone: milestone,
                   onChanged: () => setState(() {}),
@@ -106,6 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   rate: rate,
                   hours: hours,
                   estimate: estimate,
+                  calibrationUpdatedAt: _prefsRepository.calibrationUpdatedAt,
                   milestoneHours: milestone,
                   spec: spec,
                 );
@@ -159,10 +167,23 @@ class _SettingsPageState extends State<SettingsPage> {
     final rate = double.tryParse(_rateController.text.trim());
     final hours = double.tryParse(_hoursController.text.trim());
     final symbol = _currencyController.text.trim();
+    final calibrationInput = _calibrationController.text.trim();
+    final calibrationWatts = _parseCalibrationInput();
 
     if (rate == null || rate <= 0 || hours == null || hours <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter valid numeric values.')),
+      );
+      return;
+    }
+
+    if (calibrationInput.isNotEmpty && calibrationWatts == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Calibration watt reading must be a number greater than 0.',
+          ),
+        ),
       );
       return;
     }
@@ -173,6 +194,7 @@ class _SettingsPageState extends State<SettingsPage> {
       dailyHours: hours,
       usageProfile: _usageProfile,
     );
+    await _prefsRepository.saveManualCalibration(calibrationWatts);
 
     if (!mounted) {
       return;
@@ -246,11 +268,24 @@ class _SettingsPageState extends State<SettingsPage> {
     context.go('/onboarding');
   }
 
+  double? _parseCalibrationInput() {
+    final raw = _calibrationController.text.trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+    final parsed = double.tryParse(raw);
+    if (parsed == null || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  }
+
   @override
   void dispose() {
     _currencyController.dispose();
     _rateController.dispose();
     _hoursController.dispose();
+    _calibrationController.dispose();
     _milestoneController.dispose();
     super.dispose();
   }
@@ -261,6 +296,7 @@ class _SettingsPrimaryPanel extends StatelessWidget {
     required this.currencyController,
     required this.rateController,
     required this.hoursController,
+    required this.calibrationController,
     required this.milestoneController,
     required this.milestone,
     required this.onChanged,
@@ -276,6 +312,7 @@ class _SettingsPrimaryPanel extends StatelessWidget {
   final TextEditingController currencyController;
   final TextEditingController rateController;
   final TextEditingController hoursController;
+  final TextEditingController calibrationController;
   final TextEditingController milestoneController;
   final double milestone;
   final VoidCallback onChanged;
@@ -363,6 +400,23 @@ class _SettingsPrimaryPanel extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   usageProfile.description,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: calibrationController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Manual calibration (watts)',
+                    hintText: 'e.g. 185 from a smart plug or UPS',
+                  ),
+                  onChanged: (_) => onChanged(),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Optional. Enter a real watt reading to apply a correction factor on top of the model.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 18),
@@ -468,6 +522,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
     required this.rate,
     required this.hours,
     required this.estimate,
+    required this.calibrationUpdatedAt,
     required this.milestoneHours,
     required this.spec,
   });
@@ -476,6 +531,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
   final double rate;
   final double hours;
   final PowerEstimate estimate;
+  final DateTime? calibrationUpdatedAt;
   final double milestoneHours;
   final SystemSpecModel spec;
 
@@ -489,6 +545,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
           rate: rate,
           hours: hours,
           estimate: estimate,
+          calibrationUpdatedAt: calibrationUpdatedAt,
           milestoneHours: milestoneHours,
         ),
         const SizedBox(height: 16),
@@ -504,6 +561,7 @@ class _SettingsPreviewCard extends StatelessWidget {
     required this.rate,
     required this.hours,
     required this.estimate,
+    required this.calibrationUpdatedAt,
     required this.milestoneHours,
   });
 
@@ -511,6 +569,7 @@ class _SettingsPreviewCard extends StatelessWidget {
   final double rate;
   final double hours;
   final PowerEstimate estimate;
+  final DateTime? calibrationUpdatedAt;
   final double milestoneHours;
 
   @override
@@ -538,6 +597,16 @@ class _SettingsPreviewCard extends StatelessWidget {
                   '${estimate.estimatedWatts.toStringAsFixed(0)} W (${estimate.peakWatts.toStringAsFixed(0)} W peak)',
             ),
             _PreviewRow(
+              label: 'Model only',
+              value: '${estimate.uncalibratedWatts.toStringAsFixed(0)} W',
+            ),
+            _PreviewRow(
+              label: 'Calibration',
+              value: estimate.isCalibrated
+                  ? '${estimate.manualCalibrationWatts!.toStringAsFixed(0)} W (${estimate.calibrationFactor.toStringAsFixed(2)}x)'
+                  : 'Not set',
+            ),
+            _PreviewRow(
               label: 'Rate',
               value: '$symbol${rate.toStringAsFixed(2)}/kWh',
             ),
@@ -560,10 +629,22 @@ class _SettingsPreviewCard extends StatelessWidget {
               value: '$symbol${estimate.costPerDay.toStringAsFixed(2)}',
             ),
             _PreviewRow(label: 'Confidence', value: estimate.confidence.label),
+            if (calibrationUpdatedAt != null)
+              _PreviewRow(
+                label: 'Calibrated',
+                value: _formatTimestamp(calibrationUpdatedAt!),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '${local.month}/${local.day}/${local.year} $hh:$mm';
   }
 }
 

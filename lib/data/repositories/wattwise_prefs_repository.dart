@@ -24,6 +24,8 @@ class WattwisePrefsRepository {
   static const String currencySymbolKey = 'currency_symbol';
   static const String dailyHoursKey = 'daily_hours';
   static const String usageProfileKey = 'usage_profile';
+  static const String manualCalibrationWattsKey = 'manual_calibration_watts';
+  static const String calibrationUpdatedAtKey = 'calibration_updated_at';
   static const String sessionMilestoneHoursKey = 'session_milestone_hours';
 
   static const List<String> onboardingKeys = <String>[
@@ -43,6 +45,8 @@ class WattwisePrefsRepository {
     currencySymbolKey,
     dailyHoursKey,
     usageProfileKey,
+    manualCalibrationWattsKey,
+    calibrationUpdatedAtKey,
     sessionMilestoneHoursKey,
   ];
 
@@ -76,6 +80,22 @@ class WattwisePrefsRepository {
   UsageProfile get usageProfile {
     final raw = _prefsBox.get(usageProfileKey) as String?;
     return usageProfileFromStorage(raw);
+  }
+
+  double? get manualCalibrationWatts {
+    final raw = _prefsBox.get(manualCalibrationWattsKey);
+    if (raw is num && raw > 0) {
+      return raw.toDouble();
+    }
+    return null;
+  }
+
+  DateTime? get calibrationUpdatedAt {
+    final raw = _prefsBox.get(calibrationUpdatedAtKey);
+    if (raw is String && raw.isNotEmpty) {
+      return DateTime.tryParse(raw);
+    }
+    return null;
   }
 
   double get sessionMilestoneHours {
@@ -144,6 +164,19 @@ class WattwisePrefsRepository {
       sessionMilestoneHoursKey,
       hours.isNegative ? 0.0 : hours.clamp(0.0, 999.0),
     );
+  }
+
+  Future<void> saveManualCalibration(double? watts) async {
+    if (watts == null || watts <= 0) {
+      await _prefsBox.delete(manualCalibrationWattsKey);
+      await _prefsBox.delete(calibrationUpdatedAtKey);
+      return;
+    }
+
+    await _prefsBox.putAll({
+      manualCalibrationWattsKey: watts,
+      calibrationUpdatedAtKey: DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> resetOnboarding() async {

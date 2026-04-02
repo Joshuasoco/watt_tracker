@@ -42,7 +42,10 @@ class PowerEstimate extends Equatable {
   const PowerEstimate({
     required this.usageProfile,
     required this.peakWatts,
+    required this.uncalibratedWatts,
     required this.estimatedWatts,
+    required this.calibrationFactor,
+    required this.manualCalibrationWatts,
     required this.costPerSecond,
     required this.costPerHour,
     required this.costPerDay,
@@ -56,7 +59,10 @@ class PowerEstimate extends Equatable {
 
   final UsageProfile usageProfile;
   final double peakWatts;
+  final double uncalibratedWatts;
   final double estimatedWatts;
+  final double calibrationFactor;
+  final double? manualCalibrationWatts;
   final double costPerSecond;
   final double costPerHour;
   final double costPerDay;
@@ -67,11 +73,16 @@ class PowerEstimate extends Equatable {
   final DateTime generatedAt;
   final List<PowerEstimateComponent> components;
 
+  bool get isCalibrated => manualCalibrationWatts != null;
+
   @override
   List<Object?> get props => [
     usageProfile,
     peakWatts,
+    uncalibratedWatts,
     estimatedWatts,
+    calibrationFactor,
+    manualCalibrationWatts,
     costPerSecond,
     costPerHour,
     costPerDay,

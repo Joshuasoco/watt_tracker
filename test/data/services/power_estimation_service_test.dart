@@ -89,5 +89,34 @@ void main() {
       );
       expect(estimate.confidenceReasons, isNotEmpty);
     });
+
+    test('applies manual calibration as a correction factor', () {
+      final uncalibrated = service.estimate(
+        spec: spec,
+        ratePerKwh: 12,
+        dailyHours: 8,
+        usageProfile: UsageProfile.balanced,
+      );
+      final calibrated = service.estimate(
+        spec: spec,
+        ratePerKwh: 12,
+        dailyHours: 8,
+        usageProfile: UsageProfile.balanced,
+        manualCalibrationWatts: 180,
+      );
+
+      expect(calibrated.isCalibrated, isTrue);
+      expect(calibrated.manualCalibrationWatts, 180);
+      expect(
+        calibrated.calibrationFactor,
+        closeTo(180 / uncalibrated.estimatedWatts, 0.0001),
+      );
+      expect(
+        calibrated.uncalibratedWatts,
+        closeTo(uncalibrated.estimatedWatts, 0.0001),
+      );
+      expect(calibrated.estimatedWatts, closeTo(180, 0.0001));
+      expect(calibrated.formula, contains('calibration'));
+    });
   });
 }
