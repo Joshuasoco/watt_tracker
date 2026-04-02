@@ -19,9 +19,8 @@ class OnboardingShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OnboardingCubit(
-        prefsRepository: WattwisePrefsRepository(),
-      ),
+      create: (_) =>
+          OnboardingCubit(prefsRepository: WattwisePrefsRepository()),
       child: const _OnboardingView(),
     );
   }
@@ -110,9 +109,10 @@ class _OnboardingViewState extends State<_OnboardingView> {
                           );
                         case 5:
                           return Step5Hours(
-                            onContinue: (hours) {
+                            onContinue: (hours, usageProfile) {
                               final cubit = context.read<OnboardingCubit>();
                               cubit.setHours(hours);
+                              cubit.setUsageProfile(usageProfile);
                               cubit.nextStep();
                             },
                           );

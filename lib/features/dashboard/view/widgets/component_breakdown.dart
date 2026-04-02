@@ -1,50 +1,31 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/system_spec_model.dart';
+import '../../../../data/models/power_estimate.dart';
 
 class ComponentBreakdown extends StatelessWidget {
   const ComponentBreakdown({
     super.key,
-    required this.spec,
+    required this.estimate,
     required this.currencySymbol,
     required this.ratePerKwh,
   });
 
-  final SystemSpecModel spec;
+  final PowerEstimate estimate;
   final String currencySymbol;
   final double ratePerKwh;
 
   @override
   Widget build(BuildContext context) {
-    final rows = <_ComponentRowData>[
-      _ComponentRowData(label: 'CPU', watts: spec.cpuTdpWatts, icon: Icons.memory_rounded),
-      _ComponentRowData(label: 'GPU', watts: spec.gpuWatts, icon: Icons.videogame_asset_rounded),
-      _ComponentRowData(
-        label: 'RAM',
-        watts: spec.ramSticks * spec.ramWattsPerStick,
-        icon: Icons.storage_rounded,
-      ),
-      _ComponentRowData(
-        label: 'Storage',
-        watts: spec.storageCount * spec.storageWattsEach,
-        icon: Icons.save_rounded,
-      ),
-      _ComponentRowData(
-        label: 'Fans',
-        watts: spec.fanCount * spec.fansWattsEach,
-        icon: Icons.air_rounded,
-      ),
-      _ComponentRowData(
-        label: 'RGB',
-        watts: spec.hasRgb ? spec.rgbWatts : 0,
-        icon: Icons.light_mode_rounded,
-      ),
-      _ComponentRowData(
-        label: 'Motherboard',
-        watts: spec.motherboardWatts,
-        icon: Icons.developer_board_rounded,
-      ),
-    ];
+    final rows = estimate.components
+        .map(
+          (component) => _ComponentRowData(
+            label: component.label,
+            estimatedWatts: component.estimatedWatts,
+            peakWatts: component.peakWatts,
+            icon: _iconForKey(component.key),
+          ),
+        )
+        .toList();
 
     return Card(
       child: Padding(
@@ -54,13 +35,13 @@ class ComponentBreakdown extends StatelessWidget {
           children: [
             Text(
               'Component breakdown',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
-              'See which parts make up the bulk of your estimated power draw and cost share.',
+              'See which parts make up the bulk of your typical estimated draw, plus the saved peak hardware values behind it.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
@@ -69,8 +50,8 @@ class ComponentBreakdown extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _RowTile(
                   data: row,
-                  totalWatts: spec.totalWatts,
-                  costPerSecond: (row.watts / 1000) * ratePerKwh / 3600,
+                  totalWatts: estimate.estimatedWatts,
+                  costPerHour: (row.estimatedWatts / 1000) * ratePerKwh,
                   currencySymbol: currencySymbol,
                 ),
               ),
@@ -85,18 +66,18 @@ class _RowTile extends StatelessWidget {
   const _RowTile({
     required this.data,
     required this.totalWatts,
-    required this.costPerSecond,
+    required this.costPerHour,
     required this.currencySymbol,
   });
 
   final _ComponentRowData data;
-  final int totalWatts;
-  final double costPerSecond;
+  final double totalWatts;
+  final double costPerHour;
   final String currencySymbol;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = totalWatts == 0 ? 0.0 : data.watts / totalWatts;
+    final ratio = totalWatts == 0 ? 0.0 : data.estimatedWatts / totalWatts;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -125,7 +106,10 @@ class _RowTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(data.label, style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      data.label,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     Text(
                       '${(ratio * 100).toStringAsFixed(1)}% of total load',
                       style: Theme.of(context).textTheme.bodySmall,
@@ -137,13 +121,13 @@ class _RowTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${data.watts} W',
+                    '${data.estimatedWatts.toStringAsFixed(0)} W est',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
-                    '$currencySymbol${costPerSecond.toStringAsFixed(4)}/s',
+                    '${data.peakWatts.toStringAsFixed(0)} W peak | $currencySymbol${costPerHour.toStringAsFixed(2)}/hr',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -168,11 +152,34 @@ class _RowTile extends StatelessWidget {
 class _ComponentRowData {
   const _ComponentRowData({
     required this.label,
-    required this.watts,
+    required this.estimatedWatts,
+    required this.peakWatts,
     required this.icon,
   });
 
   final String label;
-  final int watts;
+  final double estimatedWatts;
+  final double peakWatts;
   final IconData icon;
+}
+
+IconData _iconForKey(String key) {
+  switch (key) {
+    case 'cpu':
+      return Icons.memory_rounded;
+    case 'gpu':
+      return Icons.videogame_asset_rounded;
+    case 'ram':
+      return Icons.storage_rounded;
+    case 'storage':
+      return Icons.save_rounded;
+    case 'fans':
+      return Icons.air_rounded;
+    case 'rgb':
+      return Icons.light_mode_rounded;
+    case 'motherboard':
+      return Icons.developer_board_rounded;
+    default:
+      return Icons.bolt_rounded;
+  }
 }

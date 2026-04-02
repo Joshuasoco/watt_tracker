@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/models/system_spec_model.dart';
+import '../../../data/models/usage_profile.dart';
 import '../../../data/repositories/wattwise_prefs_repository.dart';
 import '../../../data/services/system_scan_service.dart';
 import 'onboarding_state.dart';
@@ -101,6 +102,10 @@ class OnboardingCubit extends Cubit<OnboardingState> {
     emit(state.copyWith(dailyHours: normalized));
   }
 
+  void setUsageProfile(UsageProfile usageProfile) {
+    emit(state.copyWith(usageProfile: usageProfile));
+  }
+
   void setTermsAccepted(bool accepted) {
     emit(state.copyWith(termsAccepted: accepted));
   }
@@ -111,8 +116,7 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       electricityRate: state.electricityRate,
       currencySymbol: state.currencySymbol,
       dailyHours: state.dailyHours,
+      usageProfile: state.usageProfile,
     );
   }
 }
-
-

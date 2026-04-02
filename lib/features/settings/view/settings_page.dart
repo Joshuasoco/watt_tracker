@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/models/power_estimate.dart';
 import '../../../data/models/system_spec_model.dart';
+import '../../../data/models/usage_profile.dart';
 import '../../../data/repositories/wattage_preset_repository.dart';
 import '../../../data/repositories/wattwise_prefs_repository.dart';
+import '../../../data/services/power_estimation_service.dart';
 import '../../../data/services/tray_service.dart';
 import '../../dashboard/cubit/live_timer_cubit.dart';
 
@@ -22,6 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late final TextEditingController _rateController;
   late final TextEditingController _hoursController;
   late final TextEditingController _milestoneController;
+  late UsageProfile _usageProfile;
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _hoursController = TextEditingController(
       text: _prefsRepository.dailyHours.toStringAsFixed(1),
     );
+    _usageProfile = _prefsRepository.usageProfile;
     _milestoneController = TextEditingController(
       text: _prefsRepository.sessionMilestoneHours.toStringAsFixed(1),
     );
@@ -56,8 +61,12 @@ class _SettingsPageState extends State<SettingsPage> {
         double.tryParse(_milestoneController.text.trim()) ??
         _prefsRepository.sessionMilestoneHours;
     final spec = _resolvedSpec();
-    final hourlyCost = (spec.totalWatts / 1000) * rate;
-    final dailyCost = hourlyCost * hours;
+    final estimate = const PowerEstimationService().estimate(
+      spec: spec,
+      ratePerKwh: rate,
+      dailyHours: hours,
+      usageProfile: _usageProfile,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -76,6 +85,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   milestoneController: _milestoneController,
                   milestone: milestone,
                   onChanged: () => setState(() {}),
+                  usageProfile: _usageProfile,
+                  onUsageProfileChanged: (value) {
+                    setState(() => _usageProfile = value);
+                  },
                   onSave: _save,
                   onMilestoneChanged: _handleMilestoneChanged,
                   onRunAudit: () => context.push('/audit'),
@@ -92,9 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   symbol: symbol,
                   rate: rate,
                   hours: hours,
-                  hourlyCost: hourlyCost,
-                  dailyCost: dailyCost,
-                  totalWatts: spec.totalWatts,
+                  estimate: estimate,
                   milestoneHours: milestone,
                   spec: spec,
                 );
@@ -160,6 +171,7 @@ class _SettingsPageState extends State<SettingsPage> {
       electricityRate: rate,
       currencySymbol: symbol,
       dailyHours: hours,
+      usageProfile: _usageProfile,
     );
 
     if (!mounted) {
@@ -252,6 +264,8 @@ class _SettingsPrimaryPanel extends StatelessWidget {
     required this.milestoneController,
     required this.milestone,
     required this.onChanged,
+    required this.usageProfile,
+    required this.onUsageProfileChanged,
     required this.onSave,
     required this.onMilestoneChanged,
     required this.onRunAudit,
@@ -265,6 +279,8 @@ class _SettingsPrimaryPanel extends StatelessWidget {
   final TextEditingController milestoneController;
   final double milestone;
   final VoidCallback onChanged;
+  final UsageProfile usageProfile;
+  final ValueChanged<UsageProfile> onUsageProfileChanged;
   final VoidCallback onSave;
   final ValueChanged<String> onMilestoneChanged;
   final VoidCallback onRunAudit;
@@ -324,6 +340,30 @@ class _SettingsPrimaryPanel extends StatelessWidget {
                   ),
                   decoration: const InputDecoration(labelText: 'Daily hours'),
                   onChanged: (_) => onChanged(),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<UsageProfile>(
+                  initialValue: usageProfile,
+                  decoration: const InputDecoration(labelText: 'Usage profile'),
+                  items: UsageProfile.values
+                      .map(
+                        (profile) => DropdownMenuItem<UsageProfile>(
+                          value: profile,
+                          child: Text(profile.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    onUsageProfileChanged(value);
+                  },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  usageProfile.description,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 18),
                 FilledButton(
@@ -427,9 +467,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
     required this.symbol,
     required this.rate,
     required this.hours,
-    required this.hourlyCost,
-    required this.dailyCost,
-    required this.totalWatts,
+    required this.estimate,
     required this.milestoneHours,
     required this.spec,
   });
@@ -437,9 +475,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
   final String symbol;
   final double rate;
   final double hours;
-  final double hourlyCost;
-  final double dailyCost;
-  final int totalWatts;
+  final PowerEstimate estimate;
   final double milestoneHours;
   final SystemSpecModel spec;
 
@@ -452,9 +488,7 @@ class _SettingsSecondaryPanel extends StatelessWidget {
           symbol: symbol,
           rate: rate,
           hours: hours,
-          hourlyCost: hourlyCost,
-          dailyCost: dailyCost,
-          totalWatts: totalWatts,
+          estimate: estimate,
           milestoneHours: milestoneHours,
         ),
         const SizedBox(height: 16),
@@ -469,18 +503,14 @@ class _SettingsPreviewCard extends StatelessWidget {
     required this.symbol,
     required this.rate,
     required this.hours,
-    required this.hourlyCost,
-    required this.dailyCost,
-    required this.totalWatts,
+    required this.estimate,
     required this.milestoneHours,
   });
 
   final String symbol;
   final double rate;
   final double hours;
-  final double hourlyCost;
-  final double dailyCost;
-  final int totalWatts;
+  final PowerEstimate estimate;
   final double milestoneHours;
 
   @override
@@ -498,7 +528,15 @@ class _SettingsPreviewCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
-            _PreviewRow(label: 'Power profile', value: '$totalWatts W'),
+            _PreviewRow(
+              label: 'Usage profile',
+              value: estimate.usageProfile.label,
+            ),
+            _PreviewRow(
+              label: 'Estimated draw',
+              value:
+                  '${estimate.estimatedWatts.toStringAsFixed(0)} W (${estimate.peakWatts.toStringAsFixed(0)} W peak)',
+            ),
             _PreviewRow(
               label: 'Rate',
               value: '$symbol${rate.toStringAsFixed(2)}/kWh',
@@ -515,12 +553,13 @@ class _SettingsPreviewCard extends StatelessWidget {
             ),
             _PreviewRow(
               label: 'Per hour',
-              value: '$symbol${hourlyCost.toStringAsFixed(2)}',
+              value: '$symbol${estimate.costPerHour.toStringAsFixed(2)}',
             ),
             _PreviewRow(
               label: 'Per day',
-              value: '$symbol${dailyCost.toStringAsFixed(2)}',
+              value: '$symbol${estimate.costPerDay.toStringAsFixed(2)}',
             ),
+            _PreviewRow(label: 'Confidence', value: estimate.confidence.label),
           ],
         ),
       ),

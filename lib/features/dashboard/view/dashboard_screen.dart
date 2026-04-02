@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../app/window_close_handler.dart';
+import '../../../data/models/power_estimate.dart';
+import '../../../data/models/usage_profile.dart';
 import '../../../data/services/tray_service.dart';
 import '../cubit/live_timer_cubit.dart';
 import '../cubit/live_timer_state.dart';
@@ -61,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Tracking active â€” you can close this window safely.'),
+        content: Text('Tracking active - you can close this window safely.'),
       ),
     );
   }
@@ -161,6 +163,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                               label:
                                   '${state.currencySymbol}${state.ratePerKwh.toStringAsFixed(2)}/kWh',
                             ),
+                            _TopPill(
+                              icon: Icons.tune_rounded,
+                              label: state.usageProfile.shortLabel,
+                            ),
+                            _TopPill(
+                              icon: Icons.verified_user_rounded,
+                              label: state.estimate.confidence.label,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -235,7 +245,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   currencySymbol: state.currencySymbol,
                                   totalCost: state.totalCostAccumulated,
                                   costPerSecond: state.costPerSecond,
-                                  totalWatts: state.spec.totalWatts,
+                                  estimatedWatts: state.estimate.estimatedWatts,
+                                  peakWatts: state.estimate.peakWatts,
+                                  confidenceLabel:
+                                      state.estimate.confidence.label,
+                                  usageProfileLabel: state.usageProfile.label,
                                   elapsedSeconds: state.elapsedSeconds,
                                   isRunning: state.isRunning,
                                 ),
@@ -255,7 +269,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             currencySymbol: state.currencySymbol,
                             totalCost: state.totalCostAccumulated,
                             costPerSecond: state.costPerSecond,
-                            totalWatts: state.spec.totalWatts,
+                            estimatedWatts: state.estimate.estimatedWatts,
+                            peakWatts: state.estimate.peakWatts,
+                            confidenceLabel: state.estimate.confidence.label,
+                            usageProfileLabel: state.usageProfile.label,
                             elapsedSeconds: state.elapsedSeconds,
                             isRunning: state.isRunning,
                           ),
@@ -279,7 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                         const SizedBox(height: 22),
                         ComponentBreakdown(
-                          spec: state.spec,
+                          estimate: state.estimate,
                           currencySymbol: state.currencySymbol,
                           ratePerKwh: state.ratePerKwh,
                         ),
@@ -324,7 +341,16 @@ class _DashboardContextPanel extends StatelessWidget {
             ),
             _ContextRow(
               label: 'Power profile',
-              value: '${state.spec.totalWatts} W',
+              value:
+                  '${state.estimate.estimatedWatts.toStringAsFixed(0)} W typical',
+            ),
+            _ContextRow(
+              label: 'Usage profile',
+              value: state.usageProfile.label,
+            ),
+            _ContextRow(
+              label: 'Confidence',
+              value: state.estimate.confidence.label,
             ),
             _ContextRow(
               label: 'Today estimate',
@@ -341,9 +367,38 @@ class _DashboardContextPanel extends StatelessWidget {
                   color: Theme.of(context).colorScheme.outline,
                 ),
               ),
-              child: Text(
-                _buildMessage(),
-                style: Theme.of(context).textTheme.bodyMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'How this is calculated',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.estimate.formula,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Updated ${_formatTimestamp(state.estimate.generatedAt)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  for (final reason in state.estimate.confidenceReasons)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        '- $reason',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _buildMessage(),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
             ),
           ],
@@ -372,6 +427,13 @@ class _DashboardContextPanel extends StatelessWidget {
     final mm = minutes.toString().padLeft(2, '0');
     final ss = seconds.toString().padLeft(2, '0');
     return '$hh:$mm:$ss';
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '${local.month}/${local.day}/${local.year} $hh:$mm';
   }
 }
 

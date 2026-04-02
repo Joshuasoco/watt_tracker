@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../data/models/system_spec_model.dart';
+import '../../../data/models/usage_profile.dart';
 
 class OnboardingState extends Equatable {
   const OnboardingState({
@@ -10,6 +11,7 @@ class OnboardingState extends Equatable {
     this.electricityRate = 12.0,
     this.currencySymbol = '\u20B1',
     this.dailyHours = 8,
+    this.usageProfile = UsageProfile.balanced,
     this.isScanning = false,
     this.scanError,
     this.termsAccepted = false,
@@ -31,6 +33,7 @@ class OnboardingState extends Equatable {
   final double electricityRate;
   final String currencySymbol;
   final double dailyHours;
+  final UsageProfile usageProfile;
   final bool isScanning;
   final String? scanError;
   final bool termsAccepted;
@@ -47,6 +50,7 @@ class OnboardingState extends Equatable {
     double? electricityRate,
     String? currencySymbol,
     double? dailyHours,
+    UsageProfile? usageProfile,
     bool? isScanning,
     String? scanError,
     bool clearScanError = false,
@@ -64,6 +68,7 @@ class OnboardingState extends Equatable {
       electricityRate: electricityRate ?? this.electricityRate,
       currencySymbol: currencySymbol ?? this.currencySymbol,
       dailyHours: dailyHours ?? this.dailyHours,
+      usageProfile: usageProfile ?? this.usageProfile,
       isScanning: isScanning ?? this.isScanning,
       scanError: clearScanError ? null : (scanError ?? this.scanError),
       termsAccepted: termsAccepted ?? this.termsAccepted,
@@ -83,6 +88,7 @@ class OnboardingState extends Equatable {
     electricityRate,
     currencySymbol,
     dailyHours,
+    usageProfile,
     isScanning,
     scanError,
     termsAccepted,
@@ -93,5 +99,3 @@ class OnboardingState extends Equatable {
     motherboardScanned,
   ];
 }
-
-

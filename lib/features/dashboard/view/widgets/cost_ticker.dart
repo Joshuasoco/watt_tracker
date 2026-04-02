@@ -6,7 +6,10 @@ class CostTicker extends StatelessWidget {
     required this.currencySymbol,
     required this.totalCost,
     required this.costPerSecond,
-    required this.totalWatts,
+    required this.estimatedWatts,
+    required this.peakWatts,
+    required this.confidenceLabel,
+    required this.usageProfileLabel,
     required this.elapsedSeconds,
     required this.isRunning,
   });
@@ -14,7 +17,10 @@ class CostTicker extends StatelessWidget {
   final String currencySymbol;
   final double totalCost;
   final double costPerSecond;
-  final int totalWatts;
+  final double estimatedWatts;
+  final double peakWatts;
+  final String confidenceLabel;
+  final String usageProfileLabel;
   final int elapsedSeconds;
   final bool isRunning;
 
@@ -44,10 +50,7 @@ class CostTicker extends StatelessWidget {
           Positioned(
             left: -20,
             bottom: -42,
-            child: _GlowCircle(
-              color: Colors.white.withOpacity(0.1),
-              size: 190,
-            ),
+            child: _GlowCircle(color: Colors.white.withOpacity(0.1), size: 190),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +67,16 @@ class CostTicker extends StatelessWidget {
                   ),
                   _StatusChip(
                     icon: Icons.memory_rounded,
-                    label: '$totalWatts W estimated draw',
+                    label:
+                        '${estimatedWatts.toStringAsFixed(0)} W estimated draw',
+                  ),
+                  _StatusChip(
+                    icon: Icons.tune_rounded,
+                    label: usageProfileLabel,
+                  ),
+                  _StatusChip(
+                    icon: Icons.verified_user_rounded,
+                    label: '$confidenceLabel confidence',
                   ),
                 ],
               ),
@@ -76,9 +88,9 @@ class CostTicker extends StatelessWidget {
                 builder: (context, value, _) {
                   return Text(
                     '$currencySymbol${value.toStringAsFixed(4)}',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: Colors.white,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.displayLarge?.copyWith(color: Colors.white),
                   );
                 },
               ),
@@ -97,6 +109,10 @@ class CostTicker extends StatelessWidget {
                   _MicroStat(
                     label: 'Elapsed',
                     value: _formatDuration(elapsedSeconds),
+                  ),
+                  _MicroStat(
+                    label: 'Hardware ceiling',
+                    value: '${peakWatts.toStringAsFixed(0)} W',
                   ),
                   _MicroStat(
                     label: 'Runtime state',
@@ -121,7 +137,7 @@ class CostTicker extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'This live ticker updates every second using your saved hardware profile, electricity rate, and daily usage assumptions.',
+                        'This live ticker updates every second using your saved hardware profile, selected usage profile, and electricity rate.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white.withOpacity(0.82),
                         ),
@@ -174,9 +190,9 @@ class _MicroStat extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.white),
           ),
         ],
       ),
@@ -205,9 +221,9 @@ class _StatusChip extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: Colors.white),
           ),
         ],
       ),

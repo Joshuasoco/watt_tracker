@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../data/models/usage_profile.dart';
 import '../../cubit/onboarding_cubit.dart';
 
 class Step5Hours extends StatefulWidget {
   const Step5Hours({super.key, required this.onContinue});
 
-  final ValueChanged<double> onContinue;
+  final void Function(double hours, UsageProfile usageProfile) onContinue;
 
   @override
   State<Step5Hours> createState() => _Step5HoursState();
@@ -14,11 +15,14 @@ class Step5Hours extends StatefulWidget {
 
 class _Step5HoursState extends State<Step5Hours> {
   late double _hours;
+  late UsageProfile _usageProfile;
 
   @override
   void initState() {
     super.initState();
-    _hours = context.read<OnboardingCubit>().state.dailyHours;
+    final state = context.read<OnboardingCubit>().state;
+    _hours = state.dailyHours;
+    _usageProfile = state.usageProfile;
   }
 
   @override
@@ -59,17 +63,46 @@ class _Step5HoursState extends State<Step5Hours> {
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                             const SizedBox(height: 28),
+                            Text(
+                              'What best matches this PC most days?',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: UsageProfile.values.map((profile) {
+                                final selected = profile == _usageProfile;
+                                return ChoiceChip(
+                                  label: Text(profile.label),
+                                  selected: selected,
+                                  onSelected: (_) {
+                                    setState(() => _usageProfile = profile);
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _usageProfile.description,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 24),
                             Center(
                               child: Column(
                                 children: [
                                   Text(
                                     _hours.toStringAsFixed(1),
-                                    style: Theme.of(context).textTheme.displayLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.displayLarge,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'hours per day',
-                                    style: Theme.of(context).textTheme.titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                 ],
                               ),
@@ -81,11 +114,13 @@ class _Step5HoursState extends State<Step5Hours> {
                               max: 24,
                               divisions: 46,
                               label: _hours.toStringAsFixed(1),
-                              onChanged: (value) => setState(() => _hours = value),
+                              onChanged: (value) =>
+                                  setState(() => _hours = value),
                             ),
                             const SizedBox(height: 12),
                             FilledButton(
-                              onPressed: () => widget.onContinue(_hours),
+                              onPressed: () =>
+                                  widget.onContinue(_hours, _usageProfile),
                               child: const Text('Continue'),
                             ),
                           ],
@@ -94,7 +129,10 @@ class _Step5HoursState extends State<Step5Hours> {
                       SizedBox(width: wide ? 24 : 0, height: wide ? 0 : 24),
                       Expanded(
                         flex: 5,
-                        child: _HoursGuide(hours: _hours),
+                        child: _HoursGuide(
+                          hours: _hours,
+                          usageProfile: _usageProfile,
+                        ),
                       ),
                     ],
                   );
@@ -109,9 +147,10 @@ class _Step5HoursState extends State<Step5Hours> {
 }
 
 class _HoursGuide extends StatelessWidget {
-  const _HoursGuide({required this.hours});
+  const _HoursGuide({required this.hours, required this.usageProfile});
 
   final double hours;
+  final UsageProfile usageProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -141,10 +180,21 @@ class _HoursGuide extends StatelessWidget {
             'Used for daily and monthly cost projections. You can update this later if your routine changes.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          const SizedBox(height: 12),
+          _GuideRow(label: 'Selected profile', text: usageProfile.shortLabel),
           const SizedBox(height: 16),
-          const _GuideRow(label: '1-4 hrs', text: 'Quick checks, office tasks, occasional gaming'),
-          const _GuideRow(label: '5-8 hrs', text: 'Typical daily workstation or home use'),
-          const _GuideRow(label: '9-14 hrs', text: 'Long sessions, streaming, or heavy productivity'),
+          const _GuideRow(
+            label: '1-4 hrs',
+            text: 'Quick checks, office tasks, occasional gaming',
+          ),
+          const _GuideRow(
+            label: '5-8 hrs',
+            text: 'Typical daily workstation or home use',
+          ),
+          const _GuideRow(
+            label: '9-14 hrs',
+            text: 'Long sessions, streaming, or heavy productivity',
+          ),
         ],
       ),
     );

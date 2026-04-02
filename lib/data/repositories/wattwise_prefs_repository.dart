@@ -2,6 +2,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../local/hive_boxes.dart';
 import '../models/system_spec_model.dart';
+import '../models/usage_profile.dart';
 
 class WattwisePrefsRepository {
   WattwisePrefsRepository({Box<dynamic>? prefsBox})
@@ -22,6 +23,7 @@ class WattwisePrefsRepository {
   static const String electricityRateKey = 'electricity_rate';
   static const String currencySymbolKey = 'currency_symbol';
   static const String dailyHoursKey = 'daily_hours';
+  static const String usageProfileKey = 'usage_profile';
   static const String sessionMilestoneHoursKey = 'session_milestone_hours';
 
   static const List<String> onboardingKeys = <String>[
@@ -40,6 +42,7 @@ class WattwisePrefsRepository {
     electricityRateKey,
     currencySymbolKey,
     dailyHoursKey,
+    usageProfileKey,
     sessionMilestoneHoursKey,
   ];
 
@@ -68,6 +71,11 @@ class WattwisePrefsRepository {
       return raw.toDouble().clamp(1.0, 24.0);
     }
     return 8.0;
+  }
+
+  UsageProfile get usageProfile {
+    final raw = _prefsBox.get(usageProfileKey) as String?;
+    return usageProfileFromStorage(raw);
   }
 
   double get sessionMilestoneHours {
@@ -105,6 +113,7 @@ class WattwisePrefsRepository {
     required double electricityRate,
     required String currencySymbol,
     required double dailyHours,
+    required UsageProfile usageProfile,
   }) async {
     await _prefsBox.putAll({
       onboardingCompleteKey: true,
@@ -112,6 +121,7 @@ class WattwisePrefsRepository {
       electricityRateKey: electricityRate <= 0 ? 0.01 : electricityRate,
       currencySymbolKey: _normalizeSymbol(currencySymbol),
       dailyHoursKey: dailyHours.clamp(1.0, 24.0),
+      usageProfileKey: usageProfile.storageKey,
     });
   }
 
@@ -119,11 +129,13 @@ class WattwisePrefsRepository {
     required double electricityRate,
     required String currencySymbol,
     required double dailyHours,
+    required UsageProfile usageProfile,
   }) async {
     await _prefsBox.putAll({
       electricityRateKey: electricityRate <= 0 ? 0.01 : electricityRate,
       currencySymbolKey: _normalizeSymbol(currencySymbol),
       dailyHoursKey: dailyHours.clamp(1.0, 24.0),
+      usageProfileKey: usageProfile.storageKey,
     });
   }
 

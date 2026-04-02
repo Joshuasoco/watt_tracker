@@ -24,6 +24,7 @@ class FakeProgressScanService extends SystemScanService {
         motherboardScanned: false,
       ),
     );
+    await Future<void>.delayed(Duration.zero);
 
     onProgress?.call(
       SystemScanProgress(
@@ -40,6 +41,7 @@ class FakeProgressScanService extends SystemScanService {
         motherboardScanned: false,
       ),
     );
+    await Future<void>.delayed(Duration.zero);
 
     return defaults.copyWith(
       cpuName: 'AMD Ryzen 5 5600H',

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../data/models/power_estimate.dart';
+import '../../../../data/models/usage_profile.dart';
+import '../../../../data/services/power_estimation_service.dart';
 import '../../cubit/onboarding_cubit.dart';
 import '../../cubit/onboarding_state.dart';
 
@@ -31,6 +34,12 @@ class _Step6CompleteState extends State<Step6Complete> {
   Widget build(BuildContext context) {
     return BlocBuilder<OnboardingCubit, OnboardingState>(
       builder: (context, state) {
+        final estimate = const PowerEstimationService().estimate(
+          spec: state.confirmedSpecs,
+          ratePerKwh: state.electricityRate,
+          dailyHours: state.dailyHours,
+          usageProfile: state.usageProfile,
+        );
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Center(
@@ -74,7 +83,9 @@ class _Step6CompleteState extends State<Step6Complete> {
                                 const SizedBox(height: 14),
                                 Text(
                                   "You're all set!",
-                                  style: Theme.of(context).textTheme.displaySmall,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.displaySmall,
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
@@ -92,8 +103,9 @@ class _Step6CompleteState extends State<Step6Complete> {
                                       icon: Icons.memory_rounded,
                                     ),
                                     _SummaryTile(
-                                      label: 'Total watts',
-                                      value: '${state.confirmedSpecs.totalWatts} W',
+                                      label: 'Estimated draw',
+                                      value:
+                                          '${estimate.estimatedWatts.toStringAsFixed(0)} W',
                                       icon: Icons.bolt_rounded,
                                     ),
                                     _SummaryTile(
@@ -103,9 +115,9 @@ class _Step6CompleteState extends State<Step6Complete> {
                                       icon: Icons.receipt_long_rounded,
                                     ),
                                     _SummaryTile(
-                                      label: 'Hours/day',
-                                      value: state.dailyHours.toStringAsFixed(1),
-                                      icon: Icons.schedule_rounded,
+                                      label: 'Usage profile',
+                                      value: state.usageProfile.shortLabel,
+                                      icon: Icons.tune_rounded,
                                     ),
                                   ],
                                 ),
@@ -135,7 +147,11 @@ class _Step6CompleteState extends State<Step6Complete> {
                           SizedBox(width: wide ? 26 : 0, height: wide ? 0 : 24),
                           Expanded(
                             flex: 6,
-                            child: _ReadyPanel(totalWatts: state.confirmedSpecs.totalWatts),
+                            child: _ReadyPanel(
+                              estimatedWatts: estimate.estimatedWatts,
+                              confidenceLabel: estimate.confidence.label,
+                              profileLabel: state.usageProfile.label,
+                            ),
                           ),
                         ],
                       );
@@ -152,9 +168,15 @@ class _Step6CompleteState extends State<Step6Complete> {
 }
 
 class _ReadyPanel extends StatelessWidget {
-  const _ReadyPanel({required this.totalWatts});
+  const _ReadyPanel({
+    required this.estimatedWatts,
+    required this.confidenceLabel,
+    required this.profileLabel,
+  });
 
-  final int totalWatts;
+  final double estimatedWatts;
+  final String confidenceLabel;
+  final String profileLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -173,25 +195,33 @@ class _ReadyPanel extends StatelessWidget {
         children: [
           Text(
             'What happens next',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 14),
           _PanelItem(
             icon: Icons.toll_rounded,
             title: 'Live ticker starts immediately',
-            subtitle: 'Watch your running electricity spend update every second.',
+            subtitle:
+                'Watch your running electricity spend update every second.',
           ),
           _PanelItem(
             icon: Icons.auto_graph_rounded,
-            title: '$totalWatts W estimated draw',
-            subtitle: 'Your dashboard turns that profile into hourly, daily, and monthly views.',
+            title: '${estimatedWatts.toStringAsFixed(0)} W estimated draw',
+            subtitle:
+                'Your dashboard turns that profile into hourly, daily, and monthly views.',
+          ),
+          _PanelItem(
+            icon: Icons.verified_user_rounded,
+            title: '$confidenceLabel confidence estimate',
+            subtitle: 'Usage profile: $profileLabel',
           ),
           _PanelItem(
             icon: Icons.tune_rounded,
             title: 'You can adjust later',
-            subtitle: 'Rate, hours, and detected hardware can all be refined after setup.',
+            subtitle:
+                'Rate, hours, and detected hardware can all be refined after setup.',
           ),
         ],
       ),
@@ -234,9 +264,9 @@ class _PanelItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -286,9 +316,9 @@ class _SummaryTile extends StatelessWidget {
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),

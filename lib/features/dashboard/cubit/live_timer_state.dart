@@ -1,10 +1,14 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../data/models/power_estimate.dart';
 import '../../../data/models/system_spec_model.dart';
+import '../../../data/models/usage_profile.dart';
 
 class LiveTimerState extends Equatable {
   const LiveTimerState({
     required this.spec,
+    required this.estimate,
+    this.usageProfile = UsageProfile.balanced,
     this.currencySymbol = '\u20B1',
     this.ratePerKwh = 12,
     this.dailyHours = 8,
@@ -15,10 +19,28 @@ class LiveTimerState extends Equatable {
   });
 
   factory LiveTimerState.initial() {
-    return LiveTimerState(spec: SystemSpecModel.defaults());
+    return LiveTimerState(
+      spec: SystemSpecModel.defaults(),
+      estimate: PowerEstimate(
+        usageProfile: UsageProfile.balanced,
+        peakWatts: SystemSpecModel.defaults().totalWatts.toDouble(),
+        estimatedWatts: SystemSpecModel.defaults().totalWatts.toDouble(),
+        costPerSecond: 0,
+        costPerHour: 0,
+        costPerDay: 0,
+        costPerMonth: 0,
+        confidence: EstimateConfidence.low,
+        confidenceReasons: const ['Estimate not calculated yet.'],
+        formula: '',
+        generatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        components: const [],
+      ),
+    );
   }
 
   final SystemSpecModel spec;
+  final PowerEstimate estimate;
+  final UsageProfile usageProfile;
   final String currencySymbol;
   final double ratePerKwh;
   final double dailyHours;
@@ -27,12 +49,14 @@ class LiveTimerState extends Equatable {
   final double costPerSecond;
   final bool isRunning;
 
-  double get perHour => costPerSecond * 3600;
-  double get perDay => perHour * dailyHours;
-  double get perMonth => perDay * 30;
+  double get perHour => estimate.costPerHour;
+  double get perDay => estimate.costPerDay;
+  double get perMonth => estimate.costPerMonth;
 
   LiveTimerState copyWith({
     SystemSpecModel? spec,
+    PowerEstimate? estimate,
+    UsageProfile? usageProfile,
     String? currencySymbol,
     double? ratePerKwh,
     double? dailyHours,
@@ -43,6 +67,8 @@ class LiveTimerState extends Equatable {
   }) {
     return LiveTimerState(
       spec: spec ?? this.spec,
+      estimate: estimate ?? this.estimate,
+      usageProfile: usageProfile ?? this.usageProfile,
       currencySymbol: currencySymbol ?? this.currencySymbol,
       ratePerKwh: ratePerKwh ?? this.ratePerKwh,
       dailyHours: dailyHours ?? this.dailyHours,
@@ -56,6 +82,8 @@ class LiveTimerState extends Equatable {
   @override
   List<Object?> get props => [
     spec,
+    estimate,
+    usageProfile,
     currencySymbol,
     ratePerKwh,
     dailyHours,
@@ -65,5 +93,3 @@ class LiveTimerState extends Equatable {
     isRunning,
   ];
 }
-
-
