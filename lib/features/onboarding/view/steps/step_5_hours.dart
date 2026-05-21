@@ -38,103 +38,104 @@ class _Step5HoursState extends State<Step5Hours> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth > 700;
-
-                  return Flex(
-                    direction: wide ? Axis.horizontal : Axis.vertical,
+                  final form = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        flex: 9,
+                      const Chip(
+                        avatar: Icon(Icons.schedule_rounded),
+                        label: Text('Usage pattern'),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'How many hours a day do you use this device?',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'This helps shape your daily and monthly projections. Think in terms of typical usage, not your heaviest day.',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        'What best matches this PC most days?',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: UsageProfile.values.map((profile) {
+                          final selected = profile == _usageProfile;
+                          return ChoiceChip(
+                            label: Text(profile.label),
+                            selected: selected,
+                            onSelected: (_) {
+                              setState(() => _usageProfile = profile);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _usageProfile.description,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Chip(
-                              avatar: Icon(Icons.schedule_rounded),
-                              label: Text('Usage pattern'),
-                            ),
-                            const SizedBox(height: 16),
                             Text(
-                              'How many hours a day do you use this device?',
-                              style: Theme.of(context).textTheme.headlineMedium,
+                              _hours.toStringAsFixed(1),
+                              style: Theme.of(context).textTheme.displayLarge,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 4),
                             Text(
-                              'This helps shape your daily and monthly projections. Think in terms of typical usage, not your heaviest day.',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                            const SizedBox(height: 28),
-                            Text(
-                              'What best matches this PC most days?',
+                              'hours per day',
                               style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: UsageProfile.values.map((profile) {
-                                final selected = profile == _usageProfile;
-                                return ChoiceChip(
-                                  label: Text(profile.label),
-                                  selected: selected,
-                                  onSelected: (_) {
-                                    setState(() => _usageProfile = profile);
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              _usageProfile.description,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 24),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    _hours.toStringAsFixed(1),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.displayLarge,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'hours per day',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            Slider(
-                              value: _hours,
-                              min: 1,
-                              max: 24,
-                              divisions: 46,
-                              label: _hours.toStringAsFixed(1),
-                              onChanged: (value) =>
-                                  setState(() => _hours = value),
-                            ),
-                            const SizedBox(height: 12),
-                            FilledButton(
-                              onPressed: () =>
-                                  widget.onContinue(_hours, _usageProfile),
-                              child: const Text('Continue'),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(width: wide ? 24 : 0, height: wide ? 0 : 24),
-                      Expanded(
-                        flex: 5,
-                        child: _HoursGuide(
-                          hours: _hours,
-                          usageProfile: _usageProfile,
-                        ),
+                      const SizedBox(height: 18),
+                      Slider(
+                        value: _hours,
+                        min: 1,
+                        max: 24,
+                        divisions: 46,
+                        label: _hours.toStringAsFixed(1),
+                        onChanged: (value) => setState(() => _hours = value),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: () =>
+                            widget.onContinue(_hours, _usageProfile),
+                        child: const Text('Continue'),
                       ),
                     ],
+                  );
+                  final guide = _HoursGuide(
+                    hours: _hours,
+                    usageProfile: _usageProfile,
+                  );
+
+                  if (!wide) {
+                    return SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [form, const SizedBox(height: 24), guide],
+                      ),
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 9, child: form),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 5, child: guide),
+                      ],
+                    ),
                   );
                 },
               ),

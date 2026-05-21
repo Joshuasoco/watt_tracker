@@ -51,109 +51,117 @@ class _Step6CompleteState extends State<Step6Complete> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final wide = constraints.maxWidth > 760;
-
-                      return Flex(
-                        direction: wide ? Axis.horizontal : Axis.vertical,
+                      final summary = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            flex: 10,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 350),
-                                  width: _expanded ? 104 : 52,
-                                  height: _expanded ? 104 : 52,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(28),
-                                  ),
-                                  child: const Icon(
-                                    Icons.check_rounded,
-                                    size: 56,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                const Chip(
-                                  avatar: Icon(Icons.verified_rounded),
-                                  label: Text('Setup complete'),
-                                ),
-                                const SizedBox(height: 14),
-                                Text(
-                                  "You're all set!",
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.displaySmall,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Your first power profile is ready. You can start tracking now, then fine-tune any assumptions later in settings if your setup changes.',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                const SizedBox(height: 24),
-                                Wrap(
-                                  spacing: 12,
-                                  runSpacing: 12,
-                                  children: [
-                                    _SummaryTile(
-                                      label: 'CPU',
-                                      value: state.confirmedSpecs.cpuName,
-                                      icon: Icons.memory_rounded,
-                                    ),
-                                    _SummaryTile(
-                                      label: 'Estimated draw',
-                                      value:
-                                          '${estimate.estimatedWatts.toStringAsFixed(0)} W',
-                                      icon: Icons.bolt_rounded,
-                                    ),
-                                    _SummaryTile(
-                                      label: 'Rate',
-                                      value:
-                                          '${state.currencySymbol}${state.electricityRate.toStringAsFixed(2)}/kWh',
-                                      icon: Icons.receipt_long_rounded,
-                                    ),
-                                    _SummaryTile(
-                                      label: 'Usage profile',
-                                      value: state.usageProfile.shortLabel,
-                                      icon: Icons.tune_rounded,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                                FilledButton.icon(
-                                  onPressed: _saving
-                                      ? null
-                                      : () async {
-                                          setState(() => _saving = true);
-                                          await widget.onStartTracking();
-                                          if (mounted) {
-                                            setState(() => _saving = false);
-                                          }
-                                        },
-                                  icon: Icon(
-                                    _saving
-                                        ? Icons.sync_rounded
-                                        : Icons.play_arrow_rounded,
-                                  ),
-                                  label: Text(
-                                    _saving ? 'Saving...' : 'Start Tracking',
-                                  ),
-                                ),
-                              ],
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 350),
+                            width: _expanded ? 104 : 52,
+                            height: _expanded ? 104 : 52,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 56,
+                              color: Colors.white,
                             ),
                           ),
-                          SizedBox(width: wide ? 26 : 0, height: wide ? 0 : 24),
-                          Expanded(
-                            flex: 6,
-                            child: _ReadyPanel(
-                              estimatedWatts: estimate.estimatedWatts,
-                              confidenceLabel: estimate.confidence.label,
-                              profileLabel: state.usageProfile.label,
+                          const SizedBox(height: 20),
+                          const Chip(
+                            avatar: Icon(Icons.verified_rounded),
+                            label: Text('Setup complete'),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            "You're all set!",
+                            style: Theme.of(context).textTheme.displaySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Your first power profile is ready. You can start tracking now, then fine-tune any assumptions later in settings if your setup changes.',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 24),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _SummaryTile(
+                                label: 'CPU',
+                                value: state.confirmedSpecs.cpuName,
+                                icon: Icons.memory_rounded,
+                              ),
+                              _SummaryTile(
+                                label: 'Estimated draw',
+                                value:
+                                    '${estimate.estimatedWatts.toStringAsFixed(0)} W',
+                                icon: Icons.bolt_rounded,
+                              ),
+                              _SummaryTile(
+                                label: 'Rate',
+                                value:
+                                    '${state.currencySymbol}${state.electricityRate.toStringAsFixed(2)}/kWh',
+                                icon: Icons.receipt_long_rounded,
+                              ),
+                              _SummaryTile(
+                                label: 'Usage profile',
+                                value: state.usageProfile.shortLabel,
+                                icon: Icons.tune_rounded,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: _saving
+                                ? null
+                                : () async {
+                                    setState(() => _saving = true);
+                                    await widget.onStartTracking();
+                                    if (mounted) {
+                                      setState(() => _saving = false);
+                                    }
+                                  },
+                            icon: Icon(
+                              _saving
+                                  ? Icons.sync_rounded
+                                  : Icons.play_arrow_rounded,
+                            ),
+                            label: Text(
+                              _saving ? 'Saving...' : 'Start Tracking',
                             ),
                           ),
                         ],
+                      );
+                      final readyPanel = _ReadyPanel(
+                        estimatedWatts: estimate.estimatedWatts,
+                        confidenceLabel: estimate.confidence.label,
+                        profileLabel: state.usageProfile.label,
+                      );
+
+                      if (!wide) {
+                        return SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              summary,
+                              const SizedBox(height: 24),
+                              readyPanel,
+                            ],
+                          ),
+                        );
+                      }
+
+                      return SingleChildScrollView(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 10, child: summary),
+                            const SizedBox(width: 26),
+                            Expanded(flex: 6, child: readyPanel),
+                          ],
+                        ),
                       );
                     },
                   ),

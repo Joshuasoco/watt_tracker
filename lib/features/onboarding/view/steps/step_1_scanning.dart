@@ -68,7 +68,9 @@ class _Step1ScanningState extends State<Step1Scanning>
               isResolved: state.motherboardScanned,
             ),
           ];
-          final resolvedCount = specItems.where((item) => item.isResolved).length;
+          final resolvedCount = specItems
+              .where((item) => item.isResolved)
+              .length;
           final progress = resolvedCount / specItems.length;
 
           return Padding(
@@ -104,19 +106,25 @@ class _Step1ScanningState extends State<Step1Scanning>
                                     state.isScanning
                                         ? 'Scanning your system...'
                                         : 'Scan complete',
-                                    style: Theme.of(context).textTheme.headlineMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.headlineMedium,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
                                     'We are checking your core components and preparing a first-pass power estimate. You can review everything before anything is saved.',
-                                    style: Theme.of(context).textTheme.bodyLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                   const SizedBox(height: 24),
                                   Row(
                                     children: [
                                       Expanded(
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(99),
+                                          borderRadius: BorderRadius.circular(
+                                            99,
+                                          ),
                                           child: LinearProgressIndicator(
                                             minHeight: 10,
                                             value: progress,
@@ -126,45 +134,73 @@ class _Step1ScanningState extends State<Step1Scanning>
                                       const SizedBox(width: 12),
                                       Text(
                                         '$resolvedCount/${specItems.length}',
-                                        style: Theme.of(context).textTheme.titleMedium,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium,
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 22),
-                                  for (final item in specItems)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: _ScanStatusRow(
-                                        label: item.label,
-                                        value: item.value,
-                                        isResolved: item.isResolved,
+                                  Expanded(
+                                    // The detected component rows used to be a
+                                    // static Column inside this bounded left
+                                    // pane, so they forced the parent taller
+                                    // than the available scan-card height. The
+                                    // scroll view keeps only the component list
+                                    // constrained to the remaining space.
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        children: [
+                                          for (final item in specItems)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 12,
+                                              ),
+                                              child: _ScanStatusRow(
+                                                label: item.label,
+                                                value: item.value,
+                                                isResolved: item.isResolved,
+                                              ),
+                                            ),
+                                          if (state.scanError != null) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              state.scanError!,
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.error,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            FilledButton.tonalIcon(
+                                              onPressed: () => context
+                                                  .read<OnboardingCubit>()
+                                                  .startScan(),
+                                              icon: const Icon(
+                                                Icons.refresh_rounded,
+                                              ),
+                                              label: const Text('Retry Scan'),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
-                                  if (state.scanError != null) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      state.scanError!,
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.error,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    FilledButton.tonalIcon(
-                                      onPressed: () =>
-                                          context.read<OnboardingCubit>().startScan(),
-                                      icon: const Icon(Icons.refresh_rounded),
-                                      label: const Text('Retry Scan'),
-                                    ),
-                                  ],
+                                  ),
                                 ],
                               ),
                             ),
-                            SizedBox(width: wide ? 28 : 0, height: wide ? 0 : 24),
+                            SizedBox(
+                              width: wide ? 28 : 0,
+                              height: wide ? 0 : 24,
+                            ),
                             Expanded(
                               flex: 5,
-                              child: _ScanningVisual(
-                                rotationController: _rotationController,
-                                progress: progress,
+                              child: Center(
+                                child: _ScanningVisual(
+                                  rotationController: _rotationController,
+                                  progress: progress,
+                                ),
                               ),
                             ),
                           ],
@@ -233,7 +269,9 @@ class _ScanningVisual extends StatelessWidget {
                   height: 76,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(color: Theme.of(context).colorScheme.outline),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   alignment: Alignment.center,
