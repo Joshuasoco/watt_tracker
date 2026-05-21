@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import '../models/system_spec_model.dart';
@@ -98,15 +99,16 @@ class SystemScanService {
     motherboardScanned = true;
     emitProgress();
 
-    if (cpuName.toLowerCase().contains('mobile') ||
-        cpuName.toLowerCase().contains('u-') ||
-        gpuType == 'integrated') {
-      chassisType = 'laptop';
-      fanCount = 1;
-    } else {
-      chassisType = 'desktop';
-      fanCount = 3;
-      hasRgb = true;
+    chassisType = await _scanChassisType(motherboardProduct: motherboard);
+    switch (chassisType) {
+      case 'desktop':
+        fanCount = 3;
+        hasRgb = true;
+      case 'laptop':
+        fanCount = 1;
+      case 'unknown':
+        fanCount = defaults.fanCount;
+        hasRgb = defaults.hasRgb;
     }
 
     return _buildSpec(
@@ -268,6 +270,193 @@ class SystemScanService {
       'BaseBoardProduct',
     );
     return registryValue ?? 'Unknown Motherboard';
+  }
+
+  Future<String> _scanChassisType({required String motherboardProduct}) async {
+    final enclosureSignal = await _scanSystemEnclosureChassisType();
+    final baseBoardSignal = _classifyBaseBoardChassis(motherboardProduct);
+
+    if (baseBoardSignal != 'unknown' && enclosureSignal != 'unknown') {
+      if (baseBoardSignal != enclosureSignal) {
+        _debugWarning(
+          'Chassis detection conflict: Win32_SystemEnclosure reported '
+          '$enclosureSignal, but Win32_BaseBoard product "$motherboardProduct" '
+          'matched $baseBoardSignal. Using motherboard signal.',
+        );
+      }
+
+      // A concrete motherboard match is more specific than a sometimes-wrong
+      // enclosure value, so it wins when both signals are present.
+      return baseBoardSignal;
+    }
+
+    if (baseBoardSignal != 'unknown') {
+      // Desktop chipset and explicit mobile board names are strong indicators,
+      // even when Win32_SystemEnclosure is empty or unsupported.
+      return baseBoardSignal;
+    }
+
+    if (enclosureSignal != 'unknown') {
+      // ChassisTypes is the primary signal when the motherboard product does
+      // not contain a known desktop or laptop indicator.
+      return enclosureSignal;
+    }
+
+    // Keep the result explicit instead of guessing from CPU/GPU names; those
+    // can be misleading on modern small desktops and integrated-GPU systems.
+    return 'unknown';
+  }
+
+  Future<String> _scanSystemEnclosureChassisType() async {
+    try {
+      const script =
+          'Get-WmiObject Win32_SystemEnclosure | '
+          'Select-Object -First 1 -ExpandProperty ChassisTypes';
+      final result = await _runPowerShell(script);
+      final chassisCodes = RegExp(r'\d+')
+          .allMatches(result.stdout.toString())
+          .map((match) => int.tryParse(match.group(0)!))
+          .whereType<int>()
+          .toSet();
+
+      if (chassisCodes.isEmpty) {
+        return 'unknown';
+      }
+
+      const desktopCodes = <int>{
+        3, // Desktop
+        4, // Low Profile Desktop
+        5, // Pizza Box
+        6, // Mini Tower
+        7, // Tower
+        13, // All-in-One
+        15, // Space-Saving
+        16, // Lunch Box
+        35, // Mini PC
+        36, // Stick PC
+      };
+      const laptopCodes = <int>{
+        8, // Portable
+        9, // Laptop
+        10, // Notebook
+        14, // Sub Notebook
+        30, // Tablet
+        31, // Convertible
+        32, // Detachable
+      };
+
+      final hasDesktopCode = chassisCodes.any(desktopCodes.contains);
+      final hasLaptopCode = chassisCodes.any(laptopCodes.contains);
+
+      if (hasDesktopCode && hasLaptopCode) {
+        // Mixed enclosure codes are ambiguous, so let the motherboard
+        // cross-check decide if it can.
+        return 'unknown';
+      }
+
+      if (hasDesktopCode) {
+        return 'desktop';
+      }
+
+      if (hasLaptopCode) {
+        return 'laptop';
+      }
+    } catch (_) {}
+
+    return 'unknown';
+  }
+
+  String _classifyBaseBoardChassis(String productName) {
+    final normalized = productName.toUpperCase();
+    if (normalized.trim().isEmpty ||
+        normalized.contains('UNKNOWN') ||
+        normalized.contains('TO BE FILLED')) {
+      return 'unknown';
+    }
+
+    const desktopChipsets = <String>{
+      // AMD AM4 / AM5 desktop chipsets.
+      'A320',
+      'A520',
+      'A620',
+      'B350',
+      'B450',
+      'B550',
+      'B650',
+      'B840',
+      'B850',
+      'X370',
+      'X399',
+      'X470',
+      'X570',
+      'X670',
+      'X870',
+      'TRX40',
+      'WRX80',
+      'WRX90',
+
+      // Intel desktop/workstation chipsets.
+      'H310',
+      'H370',
+      'H410',
+      'H470',
+      'H510',
+      'H570',
+      'H610',
+      'H670',
+      'H770',
+      'B360',
+      'B365',
+      'B460',
+      'B560',
+      'B660',
+      'B760',
+      'B860',
+      'Z370',
+      'Z390',
+      'Z490',
+      'Z590',
+      'Z690',
+      'Z790',
+      'Z890',
+      'X299',
+      'W680',
+      'W790',
+    };
+
+    if (desktopChipsets.any(normalized.contains)) {
+      // Desktop chipset identifiers in the baseboard product are a stronger
+      // signal than a single unexpected enclosure code such as "Laptop".
+      return 'desktop';
+    }
+
+    const laptopBoardHints = <String>{
+      'LAPTOP',
+      'NOTEBOOK',
+      'MACBOOK',
+      'THINKPAD',
+      'LATITUDE',
+      'ELITEBOOK',
+      'PROBOOK',
+      'IDEAPAD',
+      'YOGA',
+      'SURFACE',
+    };
+
+    if (laptopBoardHints.any(normalized.contains)) {
+      // Only very explicit mobile-family product names are treated as laptop;
+      // generic Apple/Mac board IDs remain unknown and fall back to enclosure.
+      return 'laptop';
+    }
+
+    return 'unknown';
+  }
+
+  void _debugWarning(String message) {
+    assert(() {
+      developer.log(message, name: 'SystemScanService', level: 900);
+      return true;
+    }());
   }
 
   Future<List<String>> _scanStorageFromRegistry() async {
