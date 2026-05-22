@@ -160,12 +160,18 @@ class _WelcomePreviewCard extends StatelessWidget {
           Positioned(
             right: -40,
             top: -20,
-            child: _GlowOrb(color: Colors.white.withOpacity(0.08), size: 180),
+            child: _GlowOrb(
+              color: Colors.white.withValues(alpha: 0.08),
+              size: 180,
+            ),
           ),
           Positioned(
             left: -30,
             bottom: -40,
-            child: _GlowOrb(color: Colors.white.withOpacity(0.12), size: 200),
+            child: _GlowOrb(
+              color: Colors.white.withValues(alpha: 0.12),
+              size: 200,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(24),
@@ -176,9 +182,9 @@ class _WelcomePreviewCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   'From hardware scan to live cost in one flow.',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 16),
                 const _PreviewRow(
@@ -219,15 +225,15 @@ class _PreviewRow extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
             child: Text(
               label.substring(0, 1),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white),
             ),
           ),
           const SizedBox(width: 12),
@@ -237,15 +243,15 @@ class _PreviewRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -272,4 +278,3 @@ class _GlowOrb extends StatelessWidget {
     );
   }
 }
-

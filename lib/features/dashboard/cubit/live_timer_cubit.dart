@@ -8,6 +8,7 @@ import '../../../data/models/system_spec_model.dart';
 import '../../../data/models/usage_profile.dart';
 import '../../../data/repositories/wattage_preset_repository.dart';
 import '../../../data/repositories/wattwise_prefs_repository.dart';
+import '../../../data/services/cpu_load_poller_service.dart';
 import '../../../data/services/power_estimation_service.dart';
 import '../../../data/services/tray_service.dart';
 import 'live_timer_state.dart';
@@ -17,9 +18,11 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     required WattwisePrefsRepository prefsRepository,
     WattagePresetRepository? presetRepository,
     PowerEstimationService? estimationService,
+    CpuLoadPollerService? cpuLoadPollerService,
   }) : _prefsRepository = prefsRepository,
        _presetRepository = presetRepository ?? WattagePresetRepository(),
        _estimationService = estimationService ?? const PowerEstimationService(),
+       _cpuLoadPollerService = cpuLoadPollerService ?? CpuLoadPollerService(),
        super(LiveTimerState.initial()) {
     _initializeFromPrefs();
   }
@@ -27,7 +30,10 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
   final WattwisePrefsRepository _prefsRepository;
   final WattagePresetRepository _presetRepository;
   final PowerEstimationService _estimationService;
+  final CpuLoadPollerService _cpuLoadPollerService;
   StreamSubscription<int>? _tickerSub;
+  StreamSubscription<CpuLoadPollResult>? _cpuLoadSub;
+  PowerEstimate? _modelEstimate;
   double sessionMilestoneHours = 2.0;
   bool _milestoneNotified = false;
 
@@ -50,6 +56,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
       usageProfile: usageProfile,
       manualCalibrationWatts: manualCalibrationWatts,
     );
+    _modelEstimate = estimate;
 
     emit(
       state.copyWith(
@@ -82,6 +89,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
       usageProfile: usageProfile,
       manualCalibrationWatts: manualCalibrationWatts,
     );
+    _modelEstimate = estimate;
 
     emit(
       state.copyWith(
@@ -92,8 +100,14 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
         ratePerKwh: rate,
         dailyHours: dailyHours,
         costPerSecond: estimate.costPerSecond,
+        isLiveLoadActive: false,
+        liveCpuLoadPercent: null,
       ),
     );
+
+    if (state.isRunning) {
+      _startCpuLoadPolling();
+    }
 
     unawaited(TrayService().updateTooltip(_formattedCost()));
   }
@@ -104,6 +118,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     }
 
     emit(state.copyWith(isRunning: true));
+    _startCpuLoadPolling();
     unawaited(TrayService().rebuildMenu(true));
     unawaited(TrayService().updateTooltip(_formattedCost()));
 
@@ -126,6 +141,7 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
   void pauseTimer() {
     _tickerSub?.cancel();
     _tickerSub = null;
+    _stopCpuLoadPolling(restoreModelEstimate: true);
     emit(state.copyWith(isRunning: false));
     unawaited(TrayService().rebuildMenu(false));
     unawaited(TrayService().updateTooltip(_formattedCost()));
@@ -134,12 +150,15 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
   void resetTimer() {
     _tickerSub?.cancel();
     _tickerSub = null;
+    _stopCpuLoadPolling(restoreModelEstimate: true);
     _milestoneNotified = false;
     emit(
       state.copyWith(
         elapsedSeconds: 0,
         totalCostAccumulated: 0,
         isRunning: false,
+        isLiveLoadActive: false,
+        liveCpuLoadPercent: null,
       ),
     );
     unawaited(TrayService().updateTooltip(_formattedCost()));
@@ -197,9 +216,118 @@ class LiveTimerCubit extends Cubit<LiveTimerState> {
     );
   }
 
+  void _startCpuLoadPolling() {
+    _cpuLoadSub?.cancel();
+    _cpuLoadPollerService.stop();
+    _cpuLoadSub = _cpuLoadPollerService.stream.listen(_handleCpuLoadPoll);
+    _cpuLoadPollerService.start(
+      peakWatts: state.spec.cpuTdpWatts.toDouble(),
+      chassisType: state.spec.chassisType,
+    );
+  }
+
+  void _stopCpuLoadPolling({required bool restoreModelEstimate}) {
+    unawaited(_cpuLoadSub?.cancel());
+    _cpuLoadSub = null;
+    _cpuLoadPollerService.stop();
+
+    if (!restoreModelEstimate) {
+      return;
+    }
+
+    final fallbackEstimate = _modelEstimate ?? state.estimate;
+    emit(
+      state.copyWith(
+        estimate: fallbackEstimate,
+        costPerSecond: fallbackEstimate.costPerSecond,
+        isLiveLoadActive: false,
+        liveCpuLoadPercent: null,
+      ),
+    );
+  }
+
+  void _handleCpuLoadPoll(CpuLoadPollResult result) {
+    if (!state.isRunning) {
+      return;
+    }
+
+    if (!result.isSuccess || result.sample == null) {
+      // Fallback behavior: if Windows load polling fails, stop the poller and
+      // return the ticker to the saved model estimate with the "Model only"
+      // badge. This avoids accumulating cost from a stale live-load sample.
+      _stopCpuLoadPolling(restoreModelEstimate: true);
+      return;
+    }
+
+    final sample = result.sample!;
+    final liveEstimate = _estimateWithLiveCpuLoad(sample);
+    emit(
+      state.copyWith(
+        estimate: liveEstimate,
+        costPerSecond: liveEstimate.costPerSecond,
+        isLiveLoadActive: true,
+        liveCpuLoadPercent: sample.loadPercent,
+      ),
+    );
+  }
+
+  PowerEstimate _estimateWithLiveCpuLoad(CpuLoadSample sample) {
+    final modelEstimate = _modelEstimate ?? state.estimate;
+    final components = modelEstimate.components
+        .map(
+          (component) => component.key == 'cpu'
+              ? PowerEstimateComponent(
+                  key: component.key,
+                  label: component.label,
+                  peakWatts: component.peakWatts,
+                  estimatedWatts: sample.cpuWatts,
+                )
+              : component,
+        )
+        .toList();
+    final estimatedWatts = components.fold<double>(
+      0,
+      (sum, component) => sum + component.estimatedWatts,
+    );
+    final costPerHour = (estimatedWatts / 1000) * state.ratePerKwh;
+    final formula =
+        'CPU live load ${sample.loadPercent.toStringAsFixed(0)}%: '
+        '${sample.idleWatts.toStringAsFixed(0)} W idle + '
+        '(${sample.peakWatts.toStringAsFixed(0)} W peak - '
+        '${sample.idleWatts.toStringAsFixed(0)} W idle) x '
+        '${(sample.loadPercent / 100).toStringAsFixed(2)} = '
+        '${sample.cpuWatts.toStringAsFixed(0)} W CPU; '
+        'total ${estimatedWatts.toStringAsFixed(0)} W x '
+        '${state.ratePerKwh.toStringAsFixed(2)} /kWh x '
+        '${state.dailyHours.toStringAsFixed(1)} hrs/day';
+
+    return PowerEstimate(
+      usageProfile: modelEstimate.usageProfile,
+      peakWatts: modelEstimate.peakWatts,
+      uncalibratedWatts: modelEstimate.uncalibratedWatts,
+      estimatedWatts: estimatedWatts,
+      calibrationFactor: modelEstimate.calibrationFactor,
+      manualCalibrationWatts: modelEstimate.manualCalibrationWatts,
+      costPerSecond: costPerHour / 3600,
+      costPerHour: costPerHour,
+      costPerDay: costPerHour * state.dailyHours,
+      costPerMonth: costPerHour * state.dailyHours * 30,
+      confidence: modelEstimate.confidence,
+      confidenceReasons: [
+        'CPU load is sampled from Win32_Processor.LoadPercentage every 2 seconds.',
+        ...modelEstimate.confidenceReasons,
+      ],
+      formula: formula,
+      generatedAt: DateTime.now(),
+      components: components,
+    );
+  }
+
   @override
   Future<void> close() async {
     await _tickerSub?.cancel();
+    await _cpuLoadSub?.cancel();
+    await _cpuLoadPollerService.dispose();
     await TrayService().dispose();
     return super.close();
   }

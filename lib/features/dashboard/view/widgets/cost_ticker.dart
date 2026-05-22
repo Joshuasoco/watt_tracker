@@ -11,7 +11,8 @@ class CostTicker extends StatelessWidget {
     required this.peakWatts,
     required this.confidenceLabel,
     required this.usageProfileLabel,
-    required this.calibrationLabel,
+    required this.loadSourceLabel,
+    required this.liveCpuLoadPercent,
     required this.elapsedSeconds,
     required this.isRunning,
   });
@@ -24,7 +25,8 @@ class CostTicker extends StatelessWidget {
   final double peakWatts;
   final String confidenceLabel;
   final String usageProfileLabel;
-  final String calibrationLabel;
+  final String loadSourceLabel;
+  final double? liveCpuLoadPercent;
   final int elapsedSeconds;
   final bool isRunning;
 
@@ -47,14 +49,17 @@ class CostTicker extends StatelessWidget {
             right: -24,
             top: -28,
             child: _GlowCircle(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               size: 170,
             ),
           ),
           Positioned(
             left: -20,
             bottom: -42,
-            child: _GlowCircle(color: Colors.white.withOpacity(0.1), size: 190),
+            child: _GlowCircle(
+              color: Colors.white.withValues(alpha: 0.1),
+              size: 190,
+            ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,8 +88,8 @@ class CostTicker extends StatelessWidget {
                     label: '$confidenceLabel confidence',
                   ),
                   _StatusChip(
-                    icon: Icons.straighten_rounded,
-                    label: calibrationLabel,
+                    icon: Icons.speed_rounded,
+                    label: loadSourceLabel,
                   ),
                 ],
               ),
@@ -106,7 +111,7 @@ class CostTicker extends StatelessWidget {
               Text(
                 '$currencySymbol${costPerSecond.toStringAsFixed(4)} per second',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.86),
+                  color: Colors.white.withValues(alpha: 0.86),
                 ),
               ),
               const SizedBox(height: 22),
@@ -130,13 +135,18 @@ class CostTicker extends StatelessWidget {
                     label: 'Runtime state',
                     value: isRunning ? 'Accumulating' : 'On hold',
                   ),
+                  if (liveCpuLoadPercent != null)
+                    _MicroStat(
+                      label: 'CPU load',
+                      value: '${liveCpuLoadPercent!.toStringAsFixed(0)}%',
+                    ),
                 ],
               ),
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Row(
@@ -151,7 +161,7 @@ class CostTicker extends StatelessWidget {
                       child: Text(
                         'This live ticker updates every second using your saved hardware profile, selected usage profile, manual calibration if available, and electricity rate.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.82),
+                          color: Colors.white.withValues(alpha: 0.82),
                         ),
                       ),
                     ),
@@ -187,7 +197,7 @@ class _MicroStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -196,7 +206,7 @@ class _MicroStat extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white.withOpacity(0.72),
+              color: Colors.white.withValues(alpha: 0.72),
             ),
           ),
           const SizedBox(height: 4),
@@ -223,7 +233,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

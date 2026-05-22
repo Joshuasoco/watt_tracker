@@ -41,7 +41,9 @@ class Step3Terms extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 Text(
                                   'Before we continue',
-                                  style: Theme.of(context).textTheme.headlineMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
@@ -55,33 +57,50 @@ class Step3Terms extends StatelessWidget {
                                     color: const Color(0xFFF3F3F1),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: Theme.of(context).colorScheme.outline,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
                                     ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: const [
-                                      _BulletLine(text: 'This is an estimate, not a hardware meter reading.'),
-                                      _BulletLine(text: 'Manual corrections are available if detection misses something.'),
-                                      _BulletLine(text: 'Your setup stays local to this device.'),
+                                      _BulletLine(
+                                        text:
+                                            'This is an estimate, not a hardware meter reading.',
+                                      ),
+                                      _BulletLine(
+                                        text:
+                                            'Manual corrections are available if detection misses something.',
+                                      ),
+                                      _BulletLine(
+                                        text:
+                                            'Your setup stays local to this device.',
+                                      ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(height: 14),
                                 CheckboxListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  title: const Text('I understand this is an estimate'),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: const Text(
+                                    'I understand this is an estimate',
+                                  ),
                                   value: state.termsAccepted,
                                   onChanged: (value) {
-                                    context.read<OnboardingCubit>().setTermsAccepted(
-                                      value ?? false,
-                                    );
+                                    context
+                                        .read<OnboardingCubit>()
+                                        .setTermsAccepted(value ?? false);
                                   },
                                 ),
                                 const SizedBox(height: 12),
                                 FilledButton(
-                                  onPressed: state.termsAccepted ? onAgree : null,
+                                  onPressed: state.termsAccepted
+                                      ? onAgree
+                                      : null,
                                   child: const Text('Agree & Continue'),
                                 ),
                               ],
@@ -123,18 +142,20 @@ class _TermsSidePanel extends StatelessWidget {
         children: [
           Text(
             'Why this matters',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 14),
           const _PanelPoint(
             title: 'Keeps expectations realistic',
-            body: 'The dashboard reflects modeled power draw, not direct wall-meter measurements.',
+            body:
+                'The dashboard reflects modeled power draw, not direct wall-meter measurements.',
           ),
           const _PanelPoint(
             title: 'Protects trust in the numbers',
-            body: 'We would rather be explicit now than let the dashboard feel deceptively precise later.',
+            body:
+                'We would rather be explicit now than let the dashboard feel deceptively precise later.',
           ),
         ],
       ),
@@ -157,15 +178,15 @@ class _PanelPoint extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
             body,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
         ],

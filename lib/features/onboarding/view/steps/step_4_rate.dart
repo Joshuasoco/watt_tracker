@@ -72,15 +72,18 @@ class _Step4RateState extends State<Step4Rate> {
                             TextField(
                               controller: _symbolController,
                               maxLength: 4,
-                              decoration: const InputDecoration(labelText: 'Currency symbol'),
+                              decoration: const InputDecoration(
+                                labelText: 'Currency symbol',
+                              ),
                               onChanged: (_) => setState(() {}),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _rateController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Rate',
                                 hintText: 'e.g. 13.47',
@@ -105,7 +108,10 @@ class _Step4RateState extends State<Step4Rate> {
                       SizedBox(width: wide ? 24 : 0, height: wide ? 0 : 24),
                       Expanded(
                         flex: 5,
-                        child: _RatePreview(symbol: symbol, parsedRate: parsedRate),
+                        child: _RatePreview(
+                          symbol: symbol,
+                          parsedRate: parsedRate,
+                        ),
                       ),
                     ],
                   );
@@ -149,29 +155,29 @@ class _RatePreview extends StatelessWidget {
         children: [
           Text(
             'Preview',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 14),
           Text(
             'At this rate, 1 kWh costs',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.78),
+              color: Colors.white.withValues(alpha: 0.78),
             ),
           ),
           const SizedBox(height: 10),
           Text(
             '$symbol${parsedRate.toStringAsFixed(2)}',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 18),
           Text(
             'Small changes here noticeably affect every estimate, so it is worth using the exact bill number when you have it.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.82),
+              color: Colors.white.withValues(alpha: 0.82),
             ),
           ),
         ],

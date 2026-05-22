@@ -70,7 +70,7 @@ class AppTheme {
         height: 1.45,
       ),
       bodyMedium: base.textTheme.bodyMedium?.copyWith(
-        color: _softInk.withOpacity(0.88),
+        color: _softInk.withValues(alpha: 0.88),
         height: 1.4,
       ),
       labelLarge: base.textTheme.labelLarge?.copyWith(

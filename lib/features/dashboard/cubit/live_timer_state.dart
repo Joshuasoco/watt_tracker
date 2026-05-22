@@ -16,6 +16,8 @@ class LiveTimerState extends Equatable {
     this.totalCostAccumulated = 0,
     this.costPerSecond = 0,
     this.isRunning = false,
+    this.isLiveLoadActive = false,
+    this.liveCpuLoadPercent,
   });
 
   factory LiveTimerState.initial() {
@@ -51,6 +53,8 @@ class LiveTimerState extends Equatable {
   final double totalCostAccumulated;
   final double costPerSecond;
   final bool isRunning;
+  final bool isLiveLoadActive;
+  final double? liveCpuLoadPercent;
 
   double get perHour => estimate.costPerHour;
   double get perDay => estimate.costPerDay;
@@ -67,6 +71,8 @@ class LiveTimerState extends Equatable {
     double? totalCostAccumulated,
     double? costPerSecond,
     bool? isRunning,
+    bool? isLiveLoadActive,
+    Object? liveCpuLoadPercent = _unset,
   }) {
     return LiveTimerState(
       spec: spec ?? this.spec,
@@ -79,6 +85,10 @@ class LiveTimerState extends Equatable {
       totalCostAccumulated: totalCostAccumulated ?? this.totalCostAccumulated,
       costPerSecond: costPerSecond ?? this.costPerSecond,
       isRunning: isRunning ?? this.isRunning,
+      isLiveLoadActive: isLiveLoadActive ?? this.isLiveLoadActive,
+      liveCpuLoadPercent: liveCpuLoadPercent == _unset
+          ? this.liveCpuLoadPercent
+          : liveCpuLoadPercent as double?,
     );
   }
 
@@ -94,5 +104,9 @@ class LiveTimerState extends Equatable {
     totalCostAccumulated,
     costPerSecond,
     isRunning,
+    isLiveLoadActive,
+    liveCpuLoadPercent,
   ];
 }
+
+const Object _unset = Object();

@@ -252,9 +252,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   confidenceLabel:
                                       state.estimate.confidence.label,
                                   usageProfileLabel: state.usageProfile.label,
-                                  calibrationLabel: state.estimate.isCalibrated
-                                      ? '${state.estimate.calibrationFactor.toStringAsFixed(2)}x calibrated'
+                                  // Falls back to "Model only" whenever the
+                                  // Windows CPU poller stops or reports an
+                                  // invalid Win32_Processor.LoadPercentage.
+                                  loadSourceLabel: state.isLiveLoadActive
+                                      ? 'Live load'
                                       : 'Model only',
+                                  liveCpuLoadPercent: state.liveCpuLoadPercent,
                                   elapsedSeconds: state.elapsedSeconds,
                                   isRunning: state.isRunning,
                                 ),
@@ -279,9 +283,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                             peakWatts: state.estimate.peakWatts,
                             confidenceLabel: state.estimate.confidence.label,
                             usageProfileLabel: state.usageProfile.label,
-                            calibrationLabel: state.estimate.isCalibrated
-                                ? '${state.estimate.calibrationFactor.toStringAsFixed(2)}x calibrated'
+                            // Falls back to "Model only" whenever the
+                            // Windows CPU poller stops or reports an invalid
+                            // Win32_Processor.LoadPercentage.
+                            loadSourceLabel: state.isLiveLoadActive
+                                ? 'Live load'
                                 : 'Model only',
+                            liveCpuLoadPercent: state.liveCpuLoadPercent,
                             elapsedSeconds: state.elapsedSeconds,
                             isRunning: state.isRunning,
                           ),
