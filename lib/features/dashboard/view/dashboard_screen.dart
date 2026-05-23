@@ -9,6 +9,8 @@ import 'package:window_manager/window_manager.dart';
 import '../../../app/window_close_handler.dart';
 import '../../../data/models/power_estimate.dart';
 import '../../../data/models/usage_profile.dart';
+import '../../../data/repositories/wattage_repository.dart';
+import '../../../data/repositories/wattwise_prefs_repository.dart';
 import '../../../data/services/tray_service.dart';
 import '../cubit/live_timer_cubit.dart';
 import '../cubit/live_timer_state.dart';
@@ -26,14 +28,22 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with WindowListener, WindowCloseHandler<DashboardScreen> {
   late final LiveTimerCubit _timerCubit;
+  late final WattwisePrefsRepository _prefsRepository;
+  late final WattageRepository _wattageRepository;
   bool _trackingActivated = false;
+  bool _hasPriorSession = false;
+  bool _hasActivatedTrackingBefore = false;
 
   @override
   void initState() {
     super.initState();
     _timerCubit = context.read<LiveTimerCubit>();
+    _prefsRepository = WattwisePrefsRepository();
+    _wattageRepository = WattageRepository();
     _timerCubit.reloadPreferences();
     _trackingActivated = TrayService().isInitialized;
+    _hasPriorSession = _wattageRepository.getSavedSessions().isNotEmpty;
+    _hasActivatedTrackingBefore = _prefsRepository.trackingActivatedOnce;
     initCloseHandler(_timerCubit);
   }
 
@@ -52,6 +62,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     _timerCubit.startTimer();
     await TrayService().init(_timerCubit);
+    await _prefsRepository.markTrackingActivated();
 
     if (!mounted) {
       return;
@@ -59,6 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     setState(() {
       _trackingActivated = true;
+      _hasActivatedTrackingBefore = true;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -143,6 +155,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final wide = constraints.maxWidth > 900;
+                    final showFirstActivationBanner =
+                        !state.isRunning &&
+                        !_trackingActivated &&
+                        !_hasPriorSession &&
+                        !_hasActivatedTrackingBefore;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,11 +195,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            OutlinedButton.icon(
-                              onPressed: () => context.push('/audit'),
-                              icon: const Icon(Icons.analytics_outlined),
-                              label: const Text('Run energy audit'),
-                            ),
                             FilledButton.tonalIcon(
                               onPressed: _handleTrackingToggle,
                               style: FilledButton.styleFrom(
@@ -207,6 +219,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     ? 'Stop Tracking'
                                     : 'Activate Tracking',
                               ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/audit'),
+                              icon: const Icon(Icons.analytics_outlined),
+                              label: const Text('Run energy audit'),
                             ),
                             OutlinedButton.icon(
                               onPressed: _trackingActivated
@@ -235,6 +252,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ],
                         ),
                         const SizedBox(height: 16),
+                        if (showFirstActivationBanner) ...[
+                          const _FirstTrackingBanner(),
+                          const SizedBox(height: 16),
+                        ],
                         if (wide)
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,6 +347,42 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         );
       },
+    );
+  }
+}
+
+class _FirstTrackingBanner extends StatelessWidget {
+  const _FirstTrackingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF6F1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFB7DCCE)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xFF156A4F),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Tracking is ready — press Activate Tracking to start your first session.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF156A4F),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

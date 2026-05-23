@@ -27,6 +27,7 @@ class WattwisePrefsRepository {
   static const String manualCalibrationWattsKey = 'manual_calibration_watts';
   static const String calibrationUpdatedAtKey = 'calibration_updated_at';
   static const String sessionMilestoneHoursKey = 'session_milestone_hours';
+  static const String trackingActivatedOnceKey = 'tracking_activated_once';
 
   static const List<String> onboardingKeys = <String>[
     onboardingCompleteKey,
@@ -48,6 +49,7 @@ class WattwisePrefsRepository {
     manualCalibrationWattsKey,
     calibrationUpdatedAtKey,
     sessionMilestoneHoursKey,
+    trackingActivatedOnceKey,
   ];
 
   final Box<dynamic> _prefsBox;
@@ -105,6 +107,10 @@ class WattwisePrefsRepository {
     }
     return 2.0;
   }
+
+  bool get trackingActivatedOnce =>
+      (_prefsBox.get(trackingActivatedOnceKey, defaultValue: false) as bool?) ??
+      false;
 
   SystemSpecModel get systemSpec {
     final defaults = SystemSpecModel.defaults();
@@ -164,6 +170,10 @@ class WattwisePrefsRepository {
       sessionMilestoneHoursKey,
       hours.isNegative ? 0.0 : hours.clamp(0.0, 999.0),
     );
+  }
+
+  Future<void> markTrackingActivated() async {
+    await _prefsBox.put(trackingActivatedOnceKey, true);
   }
 
   Future<void> saveManualCalibration(double? watts) async {
