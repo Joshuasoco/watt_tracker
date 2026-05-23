@@ -474,24 +474,21 @@ class _DashboardContextPanel extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if (!state.estimate.isCalibrated)
-                        OutlinedButton.icon(
-                          onPressed: () => context.push('/settings'),
-                          icon: const Icon(Icons.straighten_rounded),
-                          label: const Text('Add calibration'),
-                        ),
-                      if (state.estimate.confidence != EstimateConfidence.high)
-                        OutlinedButton.icon(
-                          onPressed: () => context.push('/settings'),
-                          icon: const Icon(Icons.tune_rounded),
-                          label: const Text('Improve estimate'),
-                        ),
-                    ],
+                  _CalibrationEntryPoint(
+                    isCalibrated: state.estimate.isCalibrated,
+                    onPressed: () => context.push('/settings'),
                   ),
+                  if (state.estimate.confidence != EstimateConfidence.high) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push('/settings'),
+                        icon: const Icon(Icons.tune_rounded),
+                        label: const Text('Improve estimate'),
+                      ),
+                    ),
+                  ],
                   if (!state.estimate.isCalibrated ||
                       state.estimate.confidence != EstimateConfidence.high)
                     const SizedBox(height: 8),
@@ -535,6 +532,103 @@ class _DashboardContextPanel extends StatelessWidget {
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
     return '${local.month}/${local.day}/${local.year} $hh:$mm';
+  }
+}
+
+class _CalibrationEntryPoint extends StatelessWidget {
+  const _CalibrationEntryPoint({
+    required this.isCalibrated,
+    required this.onPressed,
+  });
+
+  final bool isCalibrated;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCalibrated) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text('Calibrated · Edit'),
+        ),
+      );
+    }
+
+    const accentColor = Color(0xFF7A5A00);
+    const highlightColor = Color(0xFFFFF8E8);
+    const borderColor = Color(0xFFE2C56E);
+
+    return Material(
+      color: highlightColor,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: borderColor),
+                ),
+                child: const Icon(
+                  Icons.speed_rounded,
+                  color: accentColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Calibrate for better accuracy',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: accentColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Takes 30 seconds with a plug-in watt meter',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: accentColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: accentColor,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
