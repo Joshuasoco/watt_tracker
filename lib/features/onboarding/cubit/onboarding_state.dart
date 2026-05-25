@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../data/models/billing_defaults.dart';
 import '../../../data/models/system_spec_model.dart';
 import '../../../data/models/usage_profile.dart';
 
@@ -24,7 +25,13 @@ class OnboardingState extends Equatable {
 
   factory OnboardingState.initial() {
     final defaults = SystemSpecModel.defaults();
-    return OnboardingState(scannedSpecs: defaults, confirmedSpecs: defaults);
+    final billingDefaults = BillingDefaults.forCurrentLocale();
+    return OnboardingState(
+      scannedSpecs: defaults,
+      confirmedSpecs: defaults,
+      electricityRate: billingDefaults.ratePerKwh,
+      currencySymbol: billingDefaults.currencySymbol,
+    );
   }
 
   final int currentStep;

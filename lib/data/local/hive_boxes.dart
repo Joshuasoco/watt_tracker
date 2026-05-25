@@ -4,6 +4,7 @@ import '../models/component_model.dart';
 import '../models/device_model.dart';
 import '../models/session_model.dart';
 import 'hive_adapters.dart';
+import 'hive_migrations.dart';
 
 class HiveBoxes {
   static const String devices = 'devices_box';
@@ -28,6 +29,12 @@ class HiveBootstrap {
       Hive.openBox<dynamic>(HiveBoxes.wattwisePrefs),
       Hive.openBox<dynamic>(HiveBoxes.energyAudit),
     ]);
+
+    await HiveMigrations.run(
+      wattwisePrefsBox: Hive.box<dynamic>(HiveBoxes.wattwisePrefs),
+      energyAuditBox: Hive.box<dynamic>(HiveBoxes.energyAudit),
+      appPreferencesBox: Hive.box<dynamic>(HiveBoxes.appPreferences),
+    );
   }
 
   static void _registerAdapters() {

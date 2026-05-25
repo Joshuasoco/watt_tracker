@@ -14,6 +14,7 @@ class SystemScanService {
     void Function(SystemScanProgress progress)? onProgress,
   }) async {
     final defaults = SystemSpecModel.defaults();
+    final scanStartedAt = DateTime.now().toUtc();
 
     String cpuName = defaults.cpuName;
     int cpuTdp = defaults.cpuTdpWatts;
@@ -51,6 +52,20 @@ class SystemScanService {
             hasRgb: hasRgb,
             motherboard: motherboard,
             chassisType: chassisType,
+            scanFields: _scanFields(
+              cpuScanned: cpuScanned,
+              gpuScanned: gpuScanned,
+              ramScanned: ramScanned,
+              storageScanned: storageScanned,
+              motherboardScanned: motherboardScanned,
+            ),
+            inferredFields: _inferredFields(
+              cpuScanned: cpuScanned,
+              gpuScanned: gpuScanned,
+              storageScanned: storageScanned,
+              chassisInferred: false,
+            ),
+            metadataUpdatedAt: scanStartedAt,
           ),
           cpuScanned: cpuScanned,
           gpuScanned: gpuScanned,
@@ -125,6 +140,20 @@ class SystemScanService {
       hasRgb: hasRgb,
       motherboard: motherboard,
       chassisType: chassisType,
+      scanFields: _scanFields(
+        cpuScanned: cpuScanned,
+        gpuScanned: gpuScanned,
+        ramScanned: ramScanned,
+        storageScanned: storageScanned,
+        motherboardScanned: motherboardScanned,
+      ),
+      inferredFields: _inferredFields(
+        cpuScanned: cpuScanned,
+        gpuScanned: gpuScanned,
+        storageScanned: storageScanned,
+        chassisInferred: chassisType != 'unknown',
+      ),
+      metadataUpdatedAt: scanStartedAt,
     );
   }
 
@@ -556,6 +585,9 @@ class SystemScanService {
     required bool hasRgb,
     required String motherboard,
     required String chassisType,
+    Set<String> scanFields = const <String>{},
+    Set<String> inferredFields = const <String>{},
+    DateTime? metadataUpdatedAt,
   }) {
     final storageWattsEach = storageType == 'HDD' ? 7 : 3;
     final rgbWatts = hasRgb ? 10 : 0;
@@ -576,7 +608,56 @@ class SystemScanService {
       rgbWatts: rgbWatts,
       motherboard: motherboard,
       chassisType: chassisType,
+      fieldMetadata: SystemSpecModel.metadataForFields(
+        scanFields: scanFields,
+        inferredFields: inferredFields,
+        lastUpdated: metadataUpdatedAt,
+      ),
     );
+  }
+
+  Set<String> _scanFields({
+    required bool cpuScanned,
+    required bool gpuScanned,
+    required bool ramScanned,
+    required bool storageScanned,
+    required bool motherboardScanned,
+  }) {
+    return <String>{
+      if (cpuScanned) SystemSpecModel.cpuNameField,
+      if (gpuScanned) ...[
+        SystemSpecModel.gpuNameField,
+        SystemSpecModel.gpuTypeField,
+      ],
+      if (ramScanned) ...[
+        SystemSpecModel.ramGbField,
+        SystemSpecModel.ramSticksField,
+      ],
+      if (storageScanned) ...[
+        SystemSpecModel.storageCountField,
+        SystemSpecModel.storageTypeField,
+      ],
+      if (motherboardScanned) SystemSpecModel.motherboardField,
+    };
+  }
+
+  Set<String> _inferredFields({
+    required bool cpuScanned,
+    required bool gpuScanned,
+    required bool storageScanned,
+    required bool chassisInferred,
+  }) {
+    return <String>{
+      if (cpuScanned) SystemSpecModel.cpuTdpWattsField,
+      if (gpuScanned) SystemSpecModel.gpuWattsField,
+      if (storageScanned) SystemSpecModel.storageWattsEachField,
+      if (chassisInferred) ...[
+        SystemSpecModel.chassisTypeField,
+        SystemSpecModel.fanCountField,
+        SystemSpecModel.hasRgbField,
+        SystemSpecModel.rgbWattsField,
+      ],
+    };
   }
 
   List<String> _cleanLines(String output) {

@@ -15,6 +15,7 @@ class Step4Rate extends StatefulWidget {
 class _Step4RateState extends State<Step4Rate> {
   late final TextEditingController _symbolController;
   late final TextEditingController _rateController;
+  bool _showRateHelp = false;
 
   @override
   void initState() {
@@ -90,10 +91,12 @@ class _Step4RateState extends State<Step4Rate> {
                               ),
                               onChanged: (_) => setState(() {}),
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Check your latest electric bill for the exact rate.',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                            const SizedBox(height: 8),
+                            _RateHelpHint(
+                              expanded: _showRateHelp,
+                              onToggle: () => setState(
+                                () => _showRateHelp = !_showRateHelp,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             FilledButton(
@@ -129,6 +132,76 @@ class _Step4RateState extends State<Step4Rate> {
     _symbolController.dispose();
     _rateController.dispose();
     super.dispose();
+  }
+}
+
+class _RateHelpHint extends StatelessWidget {
+  const _RateHelpHint({required this.expanded, required this.onToggle});
+
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: onToggle,
+          icon: AnimatedRotation(
+            turns: expanded ? 0.5 : 0,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            child: const Icon(Icons.keyboard_arrow_down_rounded),
+          ),
+          label: const Text('How to find your rate'),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 36),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: expanded
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.55,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.8,
+                        ),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Text(
+                        "On your Meralco bill, look for 'Total Amount Due' "
+                        "divided by 'kWh Consumed'. For other utilities "
+                        '(VECO, BENECO, etc.) the same method applies. The '
+                        'blended rate is typically \u20B110\u2013\u20B113/kWh.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    );
   }
 }
 

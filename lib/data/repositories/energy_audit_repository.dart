@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../features/audit/models/audit_tip.dart';
+import '../../features/audit/models/audit_settings.dart';
 import '../../features/audit/models/audit_user_overrides.dart';
 import '../../features/audit/models/energy_audit_result.dart';
 import '../../features/audit/models/peripheral_profile.dart';
@@ -36,7 +37,9 @@ class EnergyAuditRepository {
 
     return raw
         .whereType<Map>()
-        .map((item) => EnergyAuditResult.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => EnergyAuditResult.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList(growable: false);
   }
 
@@ -76,7 +79,9 @@ class EnergyAuditRepository {
 
     return raw
         .whereType<Map>()
-        .map((item) => PeripheralProfile.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => PeripheralProfile.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList(growable: false);
   }
 
@@ -87,22 +92,17 @@ class EnergyAuditRepository {
     );
   }
 
-  Map<String, dynamic> getAuditSettings() {
+  AuditSettings getAuditSettings() {
     final raw = _auditBox.get(settingsKey);
     if (raw is Map) {
-      return Map<String, dynamic>.from(raw);
+      return AuditSettings.fromMap(Map<String, dynamic>.from(raw));
     }
 
-    return <String, dynamic>{
-      'auto_audit_enabled': true,
-      'auto_audit_interval_days': 14,
-      'show_tips_on_dashboard': true,
-      'default_snooze_days': 7,
-    };
+    return const AuditSettings();
   }
 
-  Future<void> saveAuditSettings(Map<String, dynamic> settings) async {
-    await _auditBox.put(settingsKey, settings);
+  Future<void> saveAuditSettings(AuditSettings settings) async {
+    await _auditBox.put(settingsKey, settings.toMap());
   }
 
   Map<String, dynamic> getTipPreferences() {
@@ -119,9 +119,8 @@ class EnergyAuditRepository {
 
   Future<void> dismissTip(String tipId) async {
     final prefs = getTipPreferences();
-    final dismissed = (prefs['dismissed_tip_ids'] as List?)
-            ?.whereType<String>()
-            .toSet() ??
+    final dismissed =
+        (prefs['dismissed_tip_ids'] as List?)?.whereType<String>().toSet() ??
         <String>{};
     dismissed.add(tipId);
 

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/models/billing_defaults.dart';
+
 class SettingsState {
-  const SettingsState({
-    this.currencyCode = 'PHP',
+  SettingsState({
+    String? currencyCode,
     this.themeMode = ThemeMode.light,
-    this.defaultRatePerKwh = 12,
+    double? defaultRatePerKwh,
     this.onboardingCompleted = false,
-  });
+  }) : currencyCode =
+           currencyCode ?? BillingDefaults.forCurrentLocale().currencyCode,
+       defaultRatePerKwh =
+           defaultRatePerKwh ?? BillingDefaults.forCurrentLocale().ratePerKwh;
 
   final String currencyCode;
   final ThemeMode themeMode;

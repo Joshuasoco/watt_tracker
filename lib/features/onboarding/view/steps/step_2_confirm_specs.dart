@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../data/models/system_spec_model.dart';
+import '../../../../data/models/field_metadata.dart';
 import '../../../../data/repositories/wattage_preset_repository.dart';
 import '../../cubit/onboarding_cubit.dart';
 
@@ -115,11 +116,23 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
                                     labelText: 'CPU name',
                                   ),
                                 ),
+                                _FieldMetadataHint(
+                                  value: specs.cpuName,
+                                  metadata: specs.metadataFor(
+                                    SystemSpecModel.cpuNameField,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _gpuController,
                                   decoration: const InputDecoration(
                                     labelText: 'GPU name',
+                                  ),
+                                ),
+                                _FieldMetadataHint(
+                                  value: specs.gpuName,
+                                  metadata: specs.metadataFor(
+                                    SystemSpecModel.gpuNameField,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -130,11 +143,23 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
                                     labelText: 'RAM GB',
                                   ),
                                 ),
+                                _FieldMetadataHint(
+                                  value: specs.ramGb.toString(),
+                                  metadata: specs.metadataFor(
+                                    SystemSpecModel.ramGbField,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _motherboardController,
                                   decoration: const InputDecoration(
                                     labelText: 'Motherboard',
+                                  ),
+                                ),
+                                _FieldMetadataHint(
+                                  value: specs.motherboard,
+                                  metadata: specs.metadataFor(
+                                    SystemSpecModel.motherboardField,
                                   ),
                                 ),
                               ],
@@ -221,7 +246,9 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
                                   ],
                                   selected: {_storageType},
                                   onSelectionChanged: (selection) {
-                                    setState(() => _storageType = selection.first);
+                                    setState(
+                                      () => _storageType = selection.first,
+                                    );
                                   },
                                 ),
                                 const SizedBox(height: 16),
@@ -232,13 +259,15 @@ class _Step2ConfirmSpecsState extends State<Step2ConfirmSpecs> {
                                   divisions: 10,
                                   value: _fanCount,
                                   label: _fanCount.round().toString(),
-                                  onChanged: (value) => setState(() => _fanCount = value),
+                                  onChanged: (value) =>
+                                      setState(() => _fanCount = value),
                                 ),
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
                                   title: const Text('Has RGB lighting'),
                                   value: _hasRgb,
-                                  onChanged: (value) => setState(() => _hasRgb = value),
+                                  onChanged: (value) =>
+                                      setState(() => _hasRgb = value),
                                 ),
                               ],
                             ),
@@ -350,6 +379,57 @@ class _InfoPill extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _FieldMetadataHint extends StatelessWidget {
+  const _FieldMetadataHint({required this.value, required this.metadata});
+
+  final String value;
+  final FieldMetadata metadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final unknown = metadata.isUnknown || _looksUnknown(value);
+    final colorScheme = Theme.of(context).colorScheme;
+    final label = unknown ? 'Unknown - please confirm' : _sourceLabel(metadata);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Chip(
+          visualDensity: VisualDensity.compact,
+          avatar: Icon(
+            unknown ? Icons.help_outline_rounded : Icons.verified_rounded,
+            size: 16,
+          ),
+          label: Text(label),
+          backgroundColor: unknown
+              ? colorScheme.errorContainer.withValues(alpha: 0.35)
+              : colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        ),
+      ),
+    );
+  }
+
+  String _sourceLabel(FieldMetadata metadata) {
+    final confidence = (metadata.confidence * 100).round();
+    switch (metadata.source) {
+      case FieldSource.scan:
+        return 'Detected - $confidence% confidence';
+      case FieldSource.user:
+        return 'User confirmed';
+      case FieldSource.inferred:
+        return 'Estimated - $confidence% confidence';
+      case FieldSource.unknown:
+        return 'Unknown - please confirm';
+    }
+  }
+
+  bool _looksUnknown(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isEmpty || normalized.contains('unknown');
   }
 }
 

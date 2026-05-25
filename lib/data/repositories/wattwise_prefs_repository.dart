@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../local/hive_boxes.dart';
+import '../models/billing_defaults.dart';
 import '../models/system_spec_model.dart';
 import '../models/usage_profile.dart';
 
@@ -28,18 +29,25 @@ class WattwisePrefsRepository {
   static const String calibrationUpdatedAtKey = 'calibration_updated_at';
   static const String sessionMilestoneHoursKey = 'session_milestone_hours';
   static const String trackingActivatedOnceKey = 'tracking_activated_once';
+  static const String schemaVersionKey = 'schema_version';
+  static const String specMetadataKey = 'spec_metadata';
+  static const int currentSchemaVersion = 2;
 
   static const List<String> onboardingKeys = <String>[
     onboardingCompleteKey,
     cpuNameKey,
+    SystemSpecModel.cpuTdpWattsField,
     gpuTypeKey,
     gpuNameKey,
+    SystemSpecModel.gpuWattsField,
     ramGbKey,
     ramSticksKey,
     storageCountKey,
     storageTypeKey,
+    SystemSpecModel.storageWattsEachField,
     fanCountKey,
     hasRgbKey,
+    SystemSpecModel.rgbWattsField,
     motherboardKey,
     chassisTypeKey,
     electricityRateKey,
@@ -50,6 +58,8 @@ class WattwisePrefsRepository {
     calibrationUpdatedAtKey,
     sessionMilestoneHoursKey,
     trackingActivatedOnceKey,
+    schemaVersionKey,
+    specMetadataKey,
   ];
 
   final Box<dynamic> _prefsBox;
@@ -60,15 +70,18 @@ class WattwisePrefsRepository {
 
   String get currencySymbol {
     final raw = (_prefsBox.get(currencySymbolKey) as String?)?.trim();
-    return raw == null || raw.isEmpty ? '\u20B1' : raw;
+    return raw == null || raw.isEmpty
+        ? BillingDefaults.forCurrentLocale().currencySymbol
+        : raw;
   }
 
   double get electricityRate {
-    final raw = _prefsBox.get(electricityRateKey, defaultValue: 12.0);
+    final suggestion = BillingDefaults.forCurrentLocale().ratePerKwh;
+    final raw = _prefsBox.get(electricityRateKey);
     if (raw is num) {
-      return raw <= 0 ? 12.0 : raw.toDouble();
+      return raw <= 0 ? suggestion : raw.toDouble();
     }
-    return 12.0;
+    return suggestion;
   }
 
   double get dailyHours {
@@ -113,25 +126,32 @@ class WattwisePrefsRepository {
       false;
 
   SystemSpecModel get systemSpec {
-    final defaults = SystemSpecModel.defaults();
-
-    return defaults.copyWith(
-      cpuName: (_prefsBox.get(cpuNameKey) as String?) ?? defaults.cpuName,
-      gpuType: (_prefsBox.get(gpuTypeKey) as String?) ?? defaults.gpuType,
-      gpuName: (_prefsBox.get(gpuNameKey) as String?) ?? defaults.gpuName,
-      ramGb: (_prefsBox.get(ramGbKey) as int?) ?? defaults.ramGb,
-      ramSticks: (_prefsBox.get(ramSticksKey) as int?) ?? defaults.ramSticks,
-      storageCount:
-          (_prefsBox.get(storageCountKey) as int?) ?? defaults.storageCount,
-      storageType:
-          (_prefsBox.get(storageTypeKey) as String?) ?? defaults.storageType,
-      fanCount: (_prefsBox.get(fanCountKey) as int?) ?? defaults.fanCount,
-      hasRgb: (_prefsBox.get(hasRgbKey) as bool?) ?? defaults.hasRgb,
-      motherboard:
-          (_prefsBox.get(motherboardKey) as String?) ?? defaults.motherboard,
-      chassisType:
-          (_prefsBox.get(chassisTypeKey) as String?) ?? defaults.chassisType,
-    );
+    return SystemSpecModel.fromPrefsMap({
+      SystemSpecModel.cpuNameField: _prefsBox.get(cpuNameKey),
+      SystemSpecModel.cpuTdpWattsField: _prefsBox.get(
+        SystemSpecModel.cpuTdpWattsField,
+      ),
+      SystemSpecModel.gpuTypeField: _prefsBox.get(gpuTypeKey),
+      SystemSpecModel.gpuNameField: _prefsBox.get(gpuNameKey),
+      SystemSpecModel.gpuWattsField: _prefsBox.get(
+        SystemSpecModel.gpuWattsField,
+      ),
+      SystemSpecModel.ramGbField: _prefsBox.get(ramGbKey),
+      SystemSpecModel.ramSticksField: _prefsBox.get(ramSticksKey),
+      SystemSpecModel.storageCountField: _prefsBox.get(storageCountKey),
+      SystemSpecModel.storageTypeField: _prefsBox.get(storageTypeKey),
+      SystemSpecModel.storageWattsEachField: _prefsBox.get(
+        SystemSpecModel.storageWattsEachField,
+      ),
+      SystemSpecModel.fanCountField: _prefsBox.get(fanCountKey),
+      SystemSpecModel.hasRgbField: _prefsBox.get(hasRgbKey),
+      SystemSpecModel.rgbWattsField: _prefsBox.get(
+        SystemSpecModel.rgbWattsField,
+      ),
+      SystemSpecModel.motherboardField: _prefsBox.get(motherboardKey),
+      SystemSpecModel.chassisTypeField: _prefsBox.get(chassisTypeKey),
+      specMetadataKey: _prefsBox.get(specMetadataKey),
+    });
   }
 
   Future<void> saveOnboardingData({
@@ -142,8 +162,15 @@ class WattwisePrefsRepository {
     required UsageProfile usageProfile,
   }) async {
     await _prefsBox.putAll({
+      schemaVersionKey: currentSchemaVersion,
       onboardingCompleteKey: true,
-      ...specs.toPrefsMap(),
+      ...specs
+          .copyWith(
+            fieldMetadata: SystemSpecModel.userConfirmedMetadata(
+              lastUpdated: DateTime.now().toUtc(),
+            ),
+          )
+          .toPrefsMap(),
       electricityRateKey: electricityRate <= 0 ? 0.01 : electricityRate,
       currencySymbolKey: _normalizeSymbol(currencySymbol),
       dailyHoursKey: dailyHours.clamp(1.0, 24.0),
@@ -158,6 +185,7 @@ class WattwisePrefsRepository {
     required UsageProfile usageProfile,
   }) async {
     await _prefsBox.putAll({
+      schemaVersionKey: currentSchemaVersion,
       electricityRateKey: electricityRate <= 0 ? 0.01 : electricityRate,
       currencySymbolKey: _normalizeSymbol(currencySymbol),
       dailyHoursKey: dailyHours.clamp(1.0, 24.0),
@@ -195,6 +223,8 @@ class WattwisePrefsRepository {
 
   String _normalizeSymbol(String symbol) {
     final trimmed = symbol.trim();
-    return trimmed.isEmpty ? '\u20B1' : trimmed;
+    return trimmed.isEmpty
+        ? BillingDefaults.forCurrentLocale().currencySymbol
+        : trimmed;
   }
 }

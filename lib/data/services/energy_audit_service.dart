@@ -391,11 +391,12 @@ class EnergyAuditService {
         dailyHours,
         ratePerKwh,
       );
-      if (_shouldShowTip(monthlySavings, monthlyCost)) {
+      final findingId = _findingIdForType(findings, 'always_on_extras');
+      if (_shouldShowTip(monthlySavings, monthlyCost) && findingId != null) {
         tips.add(
           AuditTip(
             id: 'tip_rgb_${now.microsecondsSinceEpoch}',
-            findingId: _findingIdForType(findings, 'always_on_extras'),
+            findingId: findingId,
             actionType: 'rgb_reduction',
             title: 'Reduce RGB usage outside active sessions',
             body:
@@ -417,11 +418,12 @@ class EnergyAuditService {
         dailyHours,
         ratePerKwh,
       );
-      if (_shouldShowTip(monthlySavings, monthlyCost)) {
+      final findingId = _findingIdForType(findings, 'always_on_extras');
+      if (_shouldShowTip(monthlySavings, monthlyCost) && findingId != null) {
         tips.add(
           AuditTip(
             id: 'tip_fan_curve_${now.microsecondsSinceEpoch}',
-            findingId: _findingIdForType(findings, 'always_on_extras'),
+            findingId: findingId,
             actionType: 'fan_curve',
             title: 'Tune fan curve for low-load periods',
             body:
@@ -518,25 +520,8 @@ class EnergyAuditService {
     return score.clamp(0, 1).toDouble();
   }
 
-  String _findingIdForType(List<AuditFinding> findings, String type) {
-    return findings
-        .firstWhere(
-          (item) => item.type == type,
-          orElse: () => findings.isNotEmpty
-              ? findings.first
-              : AuditFinding(
-                  id: 'finding_placeholder',
-                  type: 'low_confidence',
-                  severity: 'low',
-                  confidence: 'low',
-                  title: 'No findings yet',
-                  description: '',
-                  estimatedMonthlyImpact: 0,
-                  componentKeys: const <String>[],
-                  createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-                ),
-        )
-        .id;
+  String? _findingIdForType(List<AuditFinding> findings, String type) {
+    return findings.where((item) => item.type == type).firstOrNull?.id;
   }
 
   bool _shouldShowTip(double monthlySavings, double monthlyCost) {

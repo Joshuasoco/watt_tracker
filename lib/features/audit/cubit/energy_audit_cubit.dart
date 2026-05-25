@@ -75,8 +75,10 @@ class EnergyAuditCubit extends Cubit<EnergyAuditState> {
     _emitLoadedState(_auditRepository.getLatestResult());
   }
 
-  Future<void> snoozeTip(String tipId, {int days = 7}) async {
-    final until = DateTime.now().toUtc().add(Duration(days: days));
+  Future<void> snoozeTip(String tipId, {int? days}) async {
+    final snoozeDays =
+        days ?? _auditRepository.getAuditSettings().defaultSnoozeDays;
+    final until = DateTime.now().toUtc().add(Duration(days: snoozeDays));
     await _auditRepository.snoozeTip(tipId, until);
     _emitLoadedState(_auditRepository.getLatestResult());
   }

@@ -35,9 +35,12 @@ class EnergyAuditResult extends Equatable {
   final List<AuditTip> tips;
   final double dataCompleteness;
 
+  bool get hasFindings => findings.isNotEmpty;
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'result_state': hasFindings ? 'findings' : 'no_findings',
       'created_at': createdAt.toIso8601String(),
       'spec_snapshot': specSnapshot,
       'rate_per_kwh': ratePerKwh,
@@ -56,7 +59,8 @@ class EnergyAuditResult extends Equatable {
   factory EnergyAuditResult.fromMap(Map<String, dynamic> map) {
     return EnergyAuditResult(
       id: (map['id'] as String?) ?? '',
-      createdAt: DateTime.tryParse((map['created_at'] as String?) ?? '') ??
+      createdAt:
+          DateTime.tryParse((map['created_at'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       specSnapshot: _toMap(map['spec_snapshot']),
       ratePerKwh: _toDouble(map['rate_per_kwh']),
@@ -90,9 +94,10 @@ class EnergyAuditResult extends Equatable {
     if (raw is List) {
       return raw
           .whereType<Map>()
-          .map((item) => ComponentCostBreakdown.fromMap(
-                Map<String, dynamic>.from(item),
-              ))
+          .map(
+            (item) =>
+                ComponentCostBreakdown.fromMap(Map<String, dynamic>.from(item)),
+          )
           .toList(growable: false);
     }
     return const <ComponentCostBreakdown>[];
