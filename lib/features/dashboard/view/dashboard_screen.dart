@@ -25,6 +25,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+enum _TrackingActivatedAction { closeTab, exitApp }
+
 class _DashboardScreenState extends State<DashboardScreen>
     with WindowListener, WindowCloseHandler<DashboardScreen> {
   late final LiveTimerCubit _timerCubit;
@@ -73,11 +75,46 @@ class _DashboardScreenState extends State<DashboardScreen>
       _hasActivatedTrackingBefore = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tracking active - you can close this window safely.'),
-      ),
+    await _showTrackingActivatedDialog();
+  }
+
+  Future<void> _showTrackingActivatedDialog() async {
+    final action = await showDialog<_TrackingActivatedAction>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Tracking active'),
+          content: const Text('WattWise is still working in the background.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_TrackingActivatedAction.exitApp),
+              child: const Text('Exit this app'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(_TrackingActivatedAction.closeTab),
+              child: const Text('Close this tab (still working)'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (!mounted || action == null) {
+      return;
+    }
+
+    switch (action) {
+      case _TrackingActivatedAction.closeTab:
+        await windowManager.hide();
+        break;
+      case _TrackingActivatedAction.exitApp:
+        await TrayService().quitApp();
+        break;
+    }
   }
 
   void _handlePauseResume() {

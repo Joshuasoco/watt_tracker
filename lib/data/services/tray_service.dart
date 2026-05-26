@@ -88,6 +88,10 @@ class TrayService with TrayListener {
     await _rebuildMenu(isRunning);
   }
 
+  Future<void> quitApp() async {
+    await _handleQuitAction();
+  }
+
   Future<void> _updateTooltip(String cost) async {
     await trayManager.setToolTip('WattWise - $cost this session');
   }

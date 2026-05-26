@@ -7,6 +7,8 @@
 
 This document tracks all identified hardcoded/mock data in WattWise and provides a concrete, phased plan to replace them with real, dynamic sources. Each finding includes the affected file, what is hardcoded, and the recommended fix.
 
+**Scope note:** Phases 1–3 focus on Windows only. macOS and Linux implementation is deferred until Windows is stable.
+
 ---
 
 ## Table of Contents
@@ -14,8 +16,10 @@ This document tracks all identified hardcoded/mock data in WattWise and provides
 1. [Goals](#goals)
 2. [Findings by File](#findings-by-file)
 3. [Phased Improvement Plan](#phased-improvement-plan)
-4. [Quick Wins](#quick-wins)
-5. [Out of Scope](#out-of-scope)
+4. [Production Readiness Checklist](#production-readiness-checklist)
+5. [Telemetry & Privacy (Windows-only)](#telemetry--privacy-windows-only)
+6. [Quick Wins](#quick-wins)
+7. [Out of Scope](#out-of-scope)
 
 ---
 
@@ -208,6 +212,7 @@ The goal of this phase is to make the app honest about what it knows and doesn't
 
 Replace the most impactful hardcoded values with real system data.
 
+- Windows-only scope for telemetry and scan APIs in this phase.
 - Extend scan pipeline with CIM APIs (`MSFT_PhysicalDisk`, `Win32_PhysicalMemory`) for exact media type and capacity.
 - Add optional telemetry sources for CPU/GPU package power (OpenHardwareMonitor, HWiNFO shared memory, or Windows Energy APIs).
 - Add USB/HID enumeration for peripheral detection with estimated wattages by device type.
@@ -221,12 +226,42 @@ Replace the most impactful hardcoded values with real system data.
 
 Make WattWise smarter the longer it runs.
 
+- Windows-only scope for calibration inputs and telemetry in this phase.
 - Support user-provided meter readings to compute a calibration factor per device.
 - Learn idle and load watt profiles from session history.
 - Replace fixed audit thresholds with rolling baselines and configurable rules stored in audit settings.
 - Support re-calculation of historical sessions when calibration changes.
 
 **Deliverables:** Calibration model, rolling baseline engine, configurable audit rules schema.
+
+---
+
+## Production Readiness Checklist
+
+Suggested release gates for Windows-only production:
+
+- [ ] Crash-free session rate $\ge 99.5\%$ over a 7-day window.
+- [ ] Estimation accuracy target: $\pm 15\%$ vs external meter on 5+ representative systems (laptop, desktop, gaming PC).
+- [ ] No silent defaults: `unknown` values never enter calculations without explicit user confirmation.
+- [ ] Preset updates are signed, schema-validated, and support rollback to last known good version.
+- [ ] Settings schema v2 migration is tested (upgrade, rollback, and corrupted data cases).
+- [ ] Telemetry is opt-in, local-only by default, with clear user controls and retention settings.
+- [ ] Performance budget: scan completes < 2s on typical systems; telemetry overhead < 2% CPU average.
+- [ ] Error reporting and diagnostics are available locally with redaction of hardware identifiers.
+
+---
+
+## Telemetry & Privacy (Windows-only)
+
+Recommended policy for Windows-only telemetry in phases 2 and 3:
+
+- Default to local-only telemetry storage; no uploads by default.
+- Require explicit opt-in for any long-term storage or sharing of telemetry data.
+- Collect only what is needed for power estimation (utilization, package power, idle/load windows).
+- Hash or redact stable hardware identifiers before storage; avoid storing serial numbers.
+- Make retention user-configurable (recommend 30 days default) and provide a one-click purge.
+- Surface data source status in Settings (last update time, confidence, and source type).
+- Provide a safe-disable toggle for each telemetry adapter (OpenHardwareMonitor, HWiNFO, Windows APIs).
 
 ---
 
@@ -249,3 +284,7 @@ The following areas were reviewed but require no changes:
 - `build/` — generated code, no actionable mock data.
 - `third_party/` — vendor code, not owned by this project.
 - `test/` — intentional fakes for testing; keep as-is.
+
+Deferred platform work:
+
+- macOS and Linux telemetry, scan APIs, and calibration sources are deferred until Windows is stable.
