@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -79,26 +80,57 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _showTrackingActivatedDialog() async {
-    final action = await showDialog<_TrackingActivatedAction>(
+    final barrierLabel = MaterialLocalizations.of(
+      context,
+    ).modalBarrierDismissLabel;
+
+    final action = await showGeneralDialog<_TrackingActivatedAction>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Tracking active'),
-          content: const Text('WattWise is still working in the background.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(
-                dialogContext,
-              ).pop(_TrackingActivatedAction.exitApp),
-              child: const Text('Exit this app'),
+      barrierColor: Colors.black.withValues(alpha: 0.26),
+      barrierDismissible: false,
+      barrierLabel: barrierLabel,
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+                  decoration: BoxDecoration(
+                    color: Theme.of(dialogContext).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 30,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: const _TrackingActivatedDialogContent(),
+                ),
+              ),
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(
-                dialogContext,
-              ).pop(_TrackingActivatedAction.closeTab),
-              child: const Text('Close this tab (still working)'),
-            ),
-          ],
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.98, end: 1).animate(curved),
+            child: child,
+          ),
         );
       },
     );
@@ -384,6 +416,101 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         );
       },
+    );
+  }
+}
+
+class _TrackingActivatedDialogContent extends StatelessWidget {
+  const _TrackingActivatedDialogContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF1D9E75).withValues(alpha: 0.1),
+          ),
+          child: const Icon(
+            Icons.check_circle_outline_rounded,
+            color: Color(0xFF1D9E75),
+            size: 20,
+          ),
+        ),
+        const SizedBox(height: 22),
+        Text(
+          'Tracking active',
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF111111),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'WattWise is still working in the background. You can close this tab or exit the app now.',
+          style: textTheme.bodySmall?.copyWith(
+            color: const Color(0xFF3F4650),
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 22),
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(_TrackingActivatedAction.closeTab),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF6F5BFF),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                textStyle: textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('Close tab'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(_TrackingActivatedAction.exitApp),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF3F4650),
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                textStyle: textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Exit this app'),
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_forward_rounded, size: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Close tab keeps tracking running.',
+          style: textTheme.labelSmall?.copyWith(color: const Color(0xFF69727D)),
+        ),
+      ],
     );
   }
 }
